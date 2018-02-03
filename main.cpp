@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 
+#include "Token.h"
+
 int main(int argc, char** argv) {
   if (argc != 2) {
     std::cerr << "You must provide exactly one argument (an input program) to the compiler" << std::endl;
