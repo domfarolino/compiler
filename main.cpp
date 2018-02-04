@@ -15,6 +15,18 @@ int main(int argc, char** argv) {
     std::cerr << "Failed to open " << argv[1] << std::endl;
   }
 
+  /*
+   * Lexing begins here. TODO(domfarolino): eventually we'll want
+   * to factor this out into a Lexer class that can output a single
+   * token at a time.
+   */
+  std::string input;
+  while (1) {
+    // Get input full token type
+    Token token(TokenType::TColon, ":");
+    break;
+  }
+
   source.close();
   return 0;
 }
