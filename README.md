@@ -1,6 +1,9 @@
 # compiler
 
-A compiler for Wilsey's compiler class. The course site can be found [here](http://www.ece.uc.edu/~paw/classes/eecs6083/).
+> Note, the work in the project is very new and unstable at this point.
+
+A compiler for Wilsey's compiler class. The course site can be found [here](http://www.ece.uc.edu/~paw/classes/eecs6083/),
+and the language specification can be found [here](http://www.ece.uc.edu/~paw/classes/eecs6083/project/projectLanguage.pdf).
 
 # Lexer
 
