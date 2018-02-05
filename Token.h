@@ -1,6 +1,9 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
+#include <iostream>
+#include <unordered_map>
+
 enum class TokenType {
   // Types
   TInteger,
@@ -8,6 +11,7 @@ enum class TokenType {
   TString,
   TBool,
   TChar,
+  TIdentifier,
   // Whitespace
   TSpace,
   TNewline,
@@ -51,11 +55,15 @@ enum class TokenType {
   TColon,
   TSemiColon,
   TComma,
+  TPeriod,
   TLeftBracket,
   TRightBracket,
   TLeftParen,
-  TRightParen
+  TRightParen,
+  TEOF
 };
+
+std::unordered_map<std::string, TokenType> reservedWords;
 
 class Token {
 public:
