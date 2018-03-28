@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
   source.open(argv[1], std::ifstream::in);
   if (!source.is_open()) {
     std::cerr << "Failed to open " << argv[1] << std::endl;
+    return 1;
   }
 
   /*
