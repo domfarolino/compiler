@@ -13,11 +13,20 @@ bool isLower(char c) {
 }
 
 bool isOneCharReservedSymbol(char c) {
-  return true;
+  return false;
 }
 
 bool isDigit(char c) {
   return ('0' <= c && c <= '9');
+}
+
+bool isWhitespace(char c) {
+  // TODO: handle other newline characters
+  return (c == ' ' || c == '\n' || c == '\t');
+}
+
+bool isInvalidChar(char c) {
+  return !isUpper(c) && !isLower(c) && !isOneCharReservedSymbol(c) && !isDigit(c) && !isWhitespace(c);
 }
 
 /**
@@ -33,7 +42,7 @@ Token getNextToken(std::ifstream& source) {
   currentChar = source.get();
 
   // Handle whitespace
-  while (currentChar == ' ' || currentChar == '\t') {
+  while (isWhitespace(currentChar)) {
     currentChar = source.get();
   }
 
@@ -50,9 +59,9 @@ Token getNextToken(std::ifstream& source) {
   Token returnToken;
   returnToken.lexeme += currentChar;
 
-  if (isUpper(currentChar)) {
+  if (isUpper(currentChar) || isLower(currentChar)) {
     // Token is an identifier
-    std::cout << "Tokenizing identifer" << std::endl;
+    std::cout << "Tokenizing identifier or reserved word" << std::endl;
     returnToken.type = TokenType::TIdentifier;
 
     // Build lexeme
@@ -63,11 +72,12 @@ Token getNextToken(std::ifstream& source) {
 
     returnToken.lexeme.pop_back();
     source.putback(currentChar);
-  } else if (isLower(currentChar)) {
-    // Token is either reserved word, or identifier
-    std::cout << "Tokenizing reserved word or identifier" << std::endl;
 
-    // Build lexeme
+    // Check for reserved word
+    if (reservedWords.find(returnToken.lexeme) != reservedWords.end()) {
+      std::cout << "I found a reserved word : " << returnToken.lexeme << std::endl;
+      returnToken.type = reservedWords[returnToken.lexeme];
+    }
   } else if (isDigit(currentChar)) {
     // Token is a number
     std::cout << "Tokenizing number" << std::endl;
@@ -75,7 +85,7 @@ Token getNextToken(std::ifstream& source) {
     // Build lexeme
     while (std::regex_match(returnToken.lexeme, std::regex("[0-9][0-9_]*\\.?[0-9_]*"))) { // TODO: verify this regex (it is a modification of the spec)
       currentChar = source.get();
-      returnToken.lexeme += currentChar;
+      if (currentChar != '_') returnToken.lexeme += currentChar;
     }
 
     returnToken.lexeme.pop_back();
@@ -84,7 +94,16 @@ Token getNextToken(std::ifstream& source) {
   } else if (currentChar == EOF) {
     std::cout << "Hit EOF" << std::endl;
   } else {
-    std::cout << "Could not find a matching rule for " << currentChar << std::endl;
+    returnToken.type = TokenType::TInvalid;
+
+    while (isInvalidChar(currentChar)) {
+      currentChar = source.get();
+      returnToken.lexeme += currentChar;
+    }
+
+    returnToken.lexeme.pop_back();
+    source.putback(currentChar);
+    std::cout << "\033[1;31mCould not tokenize: \033[0m " << returnToken.lexeme << std::endl;
   }
 
   return returnToken;
