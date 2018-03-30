@@ -103,7 +103,7 @@ Token getNextToken(std::ifstream& source) {
 
     returnToken.lexeme.pop_back();
     source.putback(currentChar);
-    std::cout << "\033[1;31mCould not tokenize: \033[0m " << returnToken.lexeme << std::endl;
+    std::cout << "\033[1;31mCould not tokenize: \033[0m" << returnToken.lexeme << std::endl;
   }
 
   return returnToken;
