@@ -46,3 +46,13 @@ not
 true
 false
 integer THIS_IS_A_NEW_IDENTIF13R:=44;
+string test := "dominic"
+char test := 'a';
+'dominic'
+"domfeomfa\this is a test
+'c
+"dominic
+ farolino"
+bool true := false;
+a[1]:=a[1]+1;
+a[1] := a[1] + 1;

@@ -33,6 +33,14 @@ bool isWhitespace(char c) {
   return (c == ' ' || c == '\n' || c == '\t');
 }
 
+bool isDoubleQuote(char c) {
+  return c == '"';
+}
+
+bool isSingleQuote(char c) {
+  return c == '\'';
+}
+
 bool isInvalidChar(char c) {
   return !isUpper(c) && !isLower(c) && !isSpecialChar(c) && !isDigit(c) && !isWhitespace(c);
 }
@@ -86,6 +94,39 @@ Token getNextToken(std::ifstream& source) {
       returnToken.type = reservedWords[returnToken.lexeme];
     } else {
       std::cout << "Tokenizing identifier: ";
+    }
+  } else if (isDoubleQuote(currentChar) || isSingleQuote(currentChar)) {
+    // Token is a string or character
+    char correctEndingChar;
+
+    if (isDoubleQuote(currentChar)) {
+      // Token is a string
+      std::cout << "Tokenizing string: ";
+      correctEndingChar = '"';
+
+      while (std::regex_match(returnToken.lexeme, std::regex("\"[a-zA-Z0-9 _,;:.']*"))) {
+        currentChar = source.get();
+        returnToken.lexeme += currentChar;
+      }
+    } else {
+      // Token is a character, so let's pull one character, and hopefully the end quote
+      std::cout << "Tokenizing char: ";
+      correctEndingChar = '\'';
+
+      // Get second character
+      currentChar = source.get();
+      returnToken.lexeme += currentChar;
+
+      // Get third character
+      currentChar = source.get();
+      returnToken.lexeme += currentChar;
+      //std::regex_match(returnToken.lexeme, std::regex("'[a-zA-Z0-9 _;:.\"]'"));
+    }
+
+    if (returnToken.lexeme[returnToken.lexeme.size() - 1] != correctEndingChar) {
+      returnToken.type == TokenType::TInvalid;
+      source.putback(currentChar);
+      std::cout << "\033[1;31mCould not tokenize: \033[0m";
     }
   } else if (isDigit(currentChar)) {
 
