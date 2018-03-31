@@ -96,6 +96,7 @@ std::unordered_map<std::string, TokenType> reservedWords( {
   {"not", TokenType::TNot},
   {"+", TokenType::TPlus},
   {"-", TokenType::TMinus},
+  {":=", TokenType::TColonEq},
   {"<", TokenType::TLessThan},
   {">=", TokenType::TGreaterThanEq},
   {"<=", TokenType::TLessThanEq},

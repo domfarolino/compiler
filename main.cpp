@@ -12,8 +12,16 @@ bool isLower(char c) {
   return ('a' <= c && c <= 'z');
 }
 
-bool isOneCharReservedSymbol(char c) {
-  return false;
+bool isSpecialChar(char c) {
+  return (c == '.' || c == ';' ||
+          c == '(' || c == ')' ||
+          c == '[' || c == ']' ||
+          c == '&' || c == '|' ||
+          c == '+' || c == '-' ||
+          c == ':' || c == '<' ||
+          c == '>' || c == '=' ||
+          c == '!' || c == '*' ||
+          c == '/');
 }
 
 bool isDigit(char c) {
@@ -26,7 +34,7 @@ bool isWhitespace(char c) {
 }
 
 bool isInvalidChar(char c) {
-  return !isUpper(c) && !isLower(c) && !isOneCharReservedSymbol(c) && !isDigit(c) && !isWhitespace(c);
+  return !isUpper(c) && !isLower(c) && !isSpecialChar(c) && !isDigit(c) && !isWhitespace(c);
 }
 
 /**
@@ -60,8 +68,7 @@ Token getNextToken(std::ifstream& source) {
   returnToken.lexeme += currentChar;
 
   if (isUpper(currentChar) || isLower(currentChar)) {
-    // Token is an identifier
-    std::cout << "Tokenizing identifier or reserved word" << std::endl;
+    // Token is an identifier until proven a reserved word
     returnToken.type = TokenType::TIdentifier;
 
     // Build lexeme
@@ -75,12 +82,12 @@ Token getNextToken(std::ifstream& source) {
 
     // Check for reserved word
     if (reservedWords.find(returnToken.lexeme) != reservedWords.end()) {
-      std::cout << "I found a reserved word : " << returnToken.lexeme << std::endl;
+      std::cout << "Tokenizing reserved word: ";
       returnToken.type = reservedWords[returnToken.lexeme];
+    } else {
+      std::cout << "Tokenizing identifier: ";
     }
   } else if (isDigit(currentChar)) {
-    // Token is a number
-    std::cout << "Tokenizing number" << std::endl;
 
     // Build lexeme
     while (std::regex_match(returnToken.lexeme, std::regex("[0-9][0-9_]*\\.?[0-9_]*"))) { // TODO: verify this regex (it is a modification of the spec)
@@ -90,7 +97,36 @@ Token getNextToken(std::ifstream& source) {
 
     returnToken.lexeme.pop_back();
     source.putback(currentChar);
+    // Token is a number
+    if (returnToken.lexeme.find('.') == std::string::npos) {
+      std::cout << "Tokenizing TInteger: ";
+    } else {
+      std::cout << "Tokenizing TFloat: ";
+    }
     returnToken.type = (returnToken.lexeme.find('.') == std::string::npos) ? TokenType::TInteger : TokenType::TFloat;
+  } else if (isSpecialChar(currentChar)) {      
+    // Token is a reserved word starting with a special character
+
+    while (isSpecialChar(currentChar)) {
+      currentChar = source.get();
+      returnToken.lexeme += currentChar;
+    }
+
+    returnToken.lexeme.pop_back();
+    source.putback(currentChar);
+
+    // Check for reserved word
+    if (reservedWords.find(returnToken.lexeme) != reservedWords.end()) {
+      std::cout << "Tokenizing reserved word: ";
+      returnToken.type = reservedWords[returnToken.lexeme];
+    } else {
+      // Only reserved words can start with special symbols in this
+      // language, so tokens starting with special symbols all the way
+      // up to the first non-special symbol are invalid unless they match
+      // a reserved word
+      returnToken.type = TokenType::TInvalid;
+      std::cout << "\033[1;31mCould not tokenize: \033[0m";
+    }
   } else if (currentChar == EOF) {
     std::cout << "Hit EOF" << std::endl;
   } else {
@@ -103,7 +139,7 @@ Token getNextToken(std::ifstream& source) {
 
     returnToken.lexeme.pop_back();
     source.putback(currentChar);
-    std::cout << "\033[1;31mCould not tokenize: \033[0m" << returnToken.lexeme << std::endl;
+    std::cout << "\033[1;31mCould not tokenize: \033[0m";
   }
 
   return returnToken;
