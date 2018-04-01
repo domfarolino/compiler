@@ -5,7 +5,7 @@ CFLAGS=-std=c++11
 
 all: $(PROGRAMS)
 
-main: main.cpp
+main: main.cpp lexer/Lexer.cpp
 	$(CXX) $^ -o $@ $(CFLAGS)
 
 clean:
