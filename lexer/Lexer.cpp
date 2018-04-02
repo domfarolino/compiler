@@ -138,7 +138,7 @@ Token Lexer::processString() {
   }
 
   if (returnToken.lexeme[returnToken.lexeme.size() - 1] != '\"') {
-    returnToken.type == TokenType::TInvalid;
+    returnToken.type = TokenType::TInvalid;
     source.putback(returnToken.lexeme.back());
     displayLexerError(returnToken);
   }
