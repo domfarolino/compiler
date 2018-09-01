@@ -199,7 +199,17 @@ Token Lexer::processIntegerOrFloat() {
 Token Lexer::processSpecialCharacter() {
   Token returnToken(source.get());
 
+  bool hasMatched = false;
+  bool doesMatch = false;
   while (isSpecialCharacter(returnToken.lexeme.back())) {
+    doesMatch = (reservedWords.find(returnToken.lexeme) != reservedWords.end());
+
+    if (doesMatch)
+      hasMatched = true;
+
+    if (!doesMatch && hasMatched)
+      break;
+
     returnToken.lexeme.push_back(source.get());
   }
 
