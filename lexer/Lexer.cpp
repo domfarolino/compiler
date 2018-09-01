@@ -62,11 +62,10 @@ Lexer::~Lexer() {
 }
 
 /**
- * TODO: Allow us to deal with the lexing
- * of both comments, and nested comments
- * (some extra work will need to be done here,
- * likely in and outside of the getNextToken
- * function).
+ * TODO: Allow us to deal with the lexing of both comments,
+ * and nested comments (some extra work will need to be done here,
+ * likely in and outside of the getNextToken function).
+ * See https://github.com/domfarolino/compiler/issues/3
  */
 Token Lexer::nextToken() {
   // Handle whitespace
