@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
   }
 
   Lexer lexer(argv[1]);
-  Parser parser;
+  Parser parser(lexer);
   while (!lexer.isDone()) lexer.nextToken();
 
   return 0;
