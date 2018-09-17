@@ -1,11 +1,11 @@
 CXX=g++
 PROGRAMS=main
 UNAME := $(shell uname)
-CFLAGS=-std=c++11
+CFLAGS=-std=c++11 -g
 
 all: $(PROGRAMS)
 
-main: main.cpp lexer/Lexer.cpp
+main: main.cpp lexer/Lexer.cpp parser/Parser.cpp
 	$(CXX) $^ -o $@ $(CFLAGS)
 
 clean:

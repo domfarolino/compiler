@@ -1,5 +1,6 @@
 #include <iostream>
 #include "lexer/Lexer.h"
+#include "parser/Parser.h"
 
 int main(int argc, char** argv) {
   if (argc != 2) {
@@ -8,6 +9,7 @@ int main(int argc, char** argv) {
   }
 
   Lexer lexer(argv[1]);
+  Parser parser;
   while (!lexer.isDone()) lexer.nextToken();
 
   return 0;
