@@ -14,7 +14,7 @@ public:
   bool done = false;
   std::unordered_map<std::string, TokenType> reservedWords;
 
-  Lexer(const std::string&);
+  Lexer(const std::string&, bool);
 
   Token nextToken();
 
@@ -25,6 +25,7 @@ public:
   ~Lexer();
 
 private:
+  bool verbose_;
   bool isAlphabetCharacter(char c) {
     return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z');
   }

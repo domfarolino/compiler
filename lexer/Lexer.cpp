@@ -7,7 +7,7 @@
 
 #include "../lib/Token.h"
 
-Lexer::Lexer(const std::string& program): source(program, std::fstream::in), lineNumber(1), done(false),
+Lexer::Lexer(const std::string& program, bool inVerbose = false): source(program, std::fstream::in), lineNumber(1), done(false), verbose_(inVerbose),
   reservedWords({
     {".", TokenType::TPeriod},
     {"program", TokenType::TProgram},
@@ -95,13 +95,14 @@ Token Lexer::nextToken() {
   } else if (peek == EOF) {
     returnToken = Token('\0', TokenType::TEOF);
     done = true;
-    std::cout << "Lexing complete..." << std::endl;
+    if (verbose_) std::cout << "Lexing complete..." << std::endl;
   } else {
     returnToken = processInvalid();
   }
 
   if (returnToken.type != TokenType::TInvalid &&
-      returnToken.type != TokenType::TEOF) {
+      returnToken.type != TokenType::TEOF &&
+      verbose_) {
     std::cout << returnToken.lexeme << std::endl;
   }
 
@@ -121,16 +122,17 @@ Token Lexer::processIdentifierOrReservedWord() {
 
   // Check for reserved word
   if (reservedWords.find(returnToken.lexeme) != reservedWords.end()) {
-    std::cout << "Tokenizing reserved word: ";
+    if (verbose_) std::cout << "Tokenizing reserved word: ";
     returnToken.type = reservedWords[returnToken.lexeme];
-  } else std::cout << "Tokenizing identifier: ";
+  } else if (verbose_)
+    std::cout << "Tokenizing identifier: ";
 
   return returnToken;
 }
 
 Token Lexer::processString() {
   Token returnToken(source.get(), TokenType::TString);
-  std::cout << "Tokenizing string: ";
+  if (verbose_) std::cout << "Tokenizing string: ";
 
   while (std::regex_match(returnToken.lexeme, std::regex("\"[a-zA-Z0-9 _,;:.']*"))) {
     returnToken.lexeme.push_back(source.get());
@@ -148,7 +150,7 @@ Token Lexer::processString() {
 Token Lexer::processCharacter() {
   Token returnToken(source.get(), TokenType::TChar);
   bool invalid = false;
-  std::cout << "Tokenizing char: ";
+  if (verbose_) std::cout << "Tokenizing char: ";
 
   // Get second character
   returnToken.lexeme.push_back(source.get());
@@ -186,10 +188,12 @@ Token Lexer::processIntegerOrFloat() {
   returnToken.lexeme.pop_back();
 
   // What kind of token is it?
-  if (returnToken.lexeme.find('.') == std::string::npos) {
-    std::cout << "Tokenizing TInteger: ";
-  } else {
-    std::cout << "Tokenizing TFloat: ";
+  if (verbose_) {
+    if (returnToken.lexeme.find('.') == std::string::npos) {
+      std::cout << "Tokenizing TInteger: ";
+    } else {
+      std::cout << "Tokenizing TFloat: ";
+    }
   }
 
   returnToken.type = (returnToken.lexeme.find('.') == std::string::npos) ? TokenType::TInteger : TokenType::TFloat;
@@ -218,7 +222,7 @@ Token Lexer::processSpecialCharacter() {
 
   // Check for reserved word
   if (reservedWords.find(returnToken.lexeme) != reservedWords.end()) {
-    std::cout << "Tokenizing reserved word: ";
+    if (verbose_) std::cout << "Tokenizing reserved word: ";
     returnToken.type = reservedWords[returnToken.lexeme];
   } else {
     // Only reserved words can start with special symbols in this
