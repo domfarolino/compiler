@@ -40,6 +40,10 @@ void Parser::QueueError(std::string inErrorString) {
   errorQueue_.push("Line " + std::to_string(lexer_.lineNumber) + ": " + inErrorString);
 }
 
+void Parser::QueueExpectedTokenError(std::string inErrorString) {
+  errorQueue_.push("Line " + std::to_string(lexer_.lineNumber) + ": " + inErrorString + ", but got: '" + token_.lexeme + "'");
+}
+
 void Parser::FlushErrors() {
   std::cerr << "\033[1;31m";
 
@@ -84,7 +88,7 @@ bool Parser::ProgramHeader() {
 
   // program <identifier>
   if (!CheckTokenType(TokenType::TIs)) {
-    QueueError("Missing 'is' in program header");
+    QueueExpectedTokenError("Expected 'is' in program header");
     return false;
   }
 
@@ -96,13 +100,13 @@ bool Parser::ProgramHeader() {
 bool Parser::ProgramBody() {
   while (Declaration()) {
     if (!CheckTokenType(TokenType::TSemicolon)) {
-      QueueError("Expected ';' after declaration");
+      QueueExpectedTokenError("Expected ';' after declaration");
       return false;
     }
   }
 
   if (!CheckTokenType(TokenType::TBegin)) {
-    QueueError("Expected 'begin' in program body");
+    QueueExpectedTokenError("Expected 'begin' in program body");
     return false;
   }
 
@@ -110,7 +114,7 @@ bool Parser::ProgramBody() {
   /*
   while (Statement()) {
     if (!CheckTokenType(TokenType::TSemicolon)) {
-      QueueError("Expected ';' after statement");
+      QueueExpectedTokenError("Expected ';' after statement");
       return false;
     }
   }
@@ -118,7 +122,7 @@ bool Parser::ProgramBody() {
 
   if (!CheckTokenType(TokenType::TEnd) ||
       !CheckTokenType(TokenType::TProgram)) {
-    QueueError("Expected 'end program' after program body");
+    QueueExpectedTokenError("Expected 'end program' after program body");
     return false;
   }
 
@@ -186,7 +190,7 @@ bool Parser::VariableDeclaration() {
     }
 
     if (!CheckTokenType(TokenType::TColon)) {
-      QueueError("Expected ':' separating lower and upper array bounds");
+      QueueExpectedTokenError("Expected ':' separating lower and upper array bounds");
       return false;
     }
 
@@ -196,7 +200,7 @@ bool Parser::VariableDeclaration() {
     }
 
     if (!CheckTokenType(TokenType::TRightBracket)) {
-      QueueError("Expected ']' after array bounds");
+      QueueExpectedTokenError("Expected ']' after array bounds");
       return false;
     }
   }

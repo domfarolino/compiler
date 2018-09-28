@@ -1,4 +1,5 @@
-Parser is starting up!
-[1;31mLine 1: Missing 'is' in program header
+[1;31mLine 1: Expected 'is' in program header, but got: '.'
 Line 1: Error parsing program header
+Line 1: Expected 'begin' in program body, but got: '.'
+Line 1: Error parsing program body
 [0m

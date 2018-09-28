@@ -21,6 +21,7 @@ private:
   // Utility Methods
   bool CheckTokenType(TokenType);
   void QueueError(std::string);
+  void QueueExpectedTokenError(std::string);
   void FlushErrors();
 
   // Productions
