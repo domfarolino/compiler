@@ -30,10 +30,16 @@ Tokenizing reserved word: in
 Tokenizing reserved word: out
 Tokenizing reserved word: inout
 Tokenizing reserved word: integer
+Tokenizing TInteger: 1935238
 Tokenizing reserved word: float
+Tokenizing TFloat: 289.2838
 Tokenizing reserved word: string
+Tokenizing string: "chromium"
 Tokenizing reserved word: bool
+Tokenizing reserved word: true
+Tokenizing reserved word: false
 Tokenizing reserved word: char
+Tokenizing char: 'a'
 Tokenizing reserved word: [
 Tokenizing reserved word: ]
 Tokenizing reserved word: if
@@ -54,7 +60,7 @@ Tokenizing reserved word: ==
 Tokenizing reserved word: !=
 Tokenizing reserved word: *
 Tokenizing reserved word: /
-[1;31mCould not tokenize: [0m=/ [1;31mon line 46[0m
+[1;31mCould not tokenize: [0m=/ [1;31mon line 52[0m
 Tokenizing reserved word: true
 Tokenizing reserved word: false
 Tokenizing reserved word: integer
@@ -71,23 +77,23 @@ Tokenizing identifier: test
 Tokenizing reserved word: :=
 Tokenizing char: 'a'
 Tokenizing reserved word: ;
-Tokenizing char: [1;31mCould not tokenize: [0m'do [1;31mon line 52[0m
+Tokenizing char: [1;31mCould not tokenize: [0m'do [1;31mon line 58[0m
 Tokenizing identifier: ominic
 Tokenizing char: [1;31mCould not tokenize: [0m'
- [1;31mon line 52[0m
-Tokenizing string: [1;31mCould not tokenize: [0m"domfeomfa\ [1;31mon line 53[0m
-[1;31mCould not tokenize: [0m\ [1;31mon line 53[0m
+ [1;31mon line 58[0m
+Tokenizing string: [1;31mCould not tokenize: [0m"domfeomfa\ [1;31mon line 59[0m
+[1;31mCould not tokenize: [0m\ [1;31mon line 59[0m
 Tokenizing identifier: this
 Tokenizing reserved word: is
 Tokenizing identifier: a
 Tokenizing identifier: test
 Tokenizing char: [1;31mCould not tokenize: [0m'c
- [1;31mon line 54[0m
+ [1;31mon line 60[0m
 Tokenizing string: [1;31mCould not tokenize: [0m"dominic
- [1;31mon line 55[0m
+ [1;31mon line 61[0m
 Tokenizing identifier: farolino
 Tokenizing string: [1;31mCould not tokenize: [0m"
- [1;31mon line 56[0m
+ [1;31mon line 62[0m
 Tokenizing reserved word: bool
 Tokenizing reserved word: true
 Tokenizing reserved word: :=
@@ -117,4 +123,17 @@ Tokenizing reserved word: ]
 Tokenizing reserved word: +
 Tokenizing TInteger: 1
 Tokenizing reserved word: ;
+Tokenizing reserved word: float
+Tokenizing identifier: dominicArray
+Tokenizing reserved word: [
+Tokenizing TInteger: 10
+Tokenizing reserved word: :
+Tokenizing TInteger: 20
+Tokenizing reserved word: ]
+Tokenizing reserved word: ;
+Tokenizing reserved word: :
+Tokenizing reserved word: :
+Tokenizing reserved word: :
+Tokenizing reserved word: :
+Tokenizing reserved word: :=
 Lexing complete...

@@ -1,0 +1,9 @@
+program dominic is
+  integer dominic;
+  float dominicArray [100: 40];
+  float dominic_array2 [-1 : 4];
+  begin
+  end program
+        
+
+.

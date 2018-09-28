@@ -9,7 +9,6 @@
 
 Parser::Parser(Lexer& inLexer): lexer_(inLexer) {
   token_ = lexer_.nextToken();
-  std::cout << "Parser is starting up!" << std::endl;
 
   // Start parsing the program from the <program> production!
   Program();
@@ -59,11 +58,15 @@ void Parser::Program() {
     QueueError("Error parsing program header");
 
   bool parsedBody = ProgramBody();
-  if (!parsedBody)
+  if (!parsedBody) {
     QueueError("Error parsing program body");
+    return;
+  }
 
   if (!CheckTokenType(TokenType::TPeriod))
     QueueError("Missing period ('.') at the end of program");
+  else
+    std::cout << "Program compiled successfully" << std::endl;
 }
 
 // <program_header> ::= program <identifier> is
@@ -75,7 +78,7 @@ bool Parser::ProgramHeader() {
 
   // program
   if (!Identifier()) {
-    QueueError("Missing identifier in program header");
+    QueueError("Error parsing identifier in program header");
     return false;
   }
 
@@ -89,13 +92,140 @@ bool Parser::ProgramHeader() {
   return true;
 }
 
-// <program_body> ::= ( <declaration> ; )* begin ( <statement> ; )* end program
+// <program_body> ::= (<declaration>;)* begin (<statement>;)* end program
 bool Parser::ProgramBody() {
-  // TODO(domfarolino): Do this.
+  while (Declaration()) {
+    if (!CheckTokenType(TokenType::TSemicolon)) {
+      QueueError("Expected ';' after declaration");
+      return false;
+    }
+  }
+
+  if (!CheckTokenType(TokenType::TBegin)) {
+    QueueError("Expected 'begin' in program body");
+    return false;
+  }
+
+  // For now we're only doing declarations
+  /*
+  while (Statement()) {
+    if (!CheckTokenType(TokenType::TSemicolon)) {
+      QueueError("Expected ';' after statement");
+      return false;
+    }
+  }
+  */
+
+  if (!CheckTokenType(TokenType::TEnd) ||
+      !CheckTokenType(TokenType::TProgram)) {
+    QueueError("Expected 'end program' after program body");
+    return false;
+  }
+
   return true;
 }
 
+// <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
 bool Parser::Identifier() {
   // TODO(domfarolino): We probably want to return the token here too later.
   return CheckTokenType(TokenType::TIdentifier);
+}
+
+// <declaration> ::= [ global ] <procedure_declaration> | [ global ] <variable_declaration>
+bool Parser::Declaration() {
+  bool global = false;
+  if (CheckTokenType(TokenType::TGlobal))
+    global = true;
+
+  if (/*!ProcedureDeclaration() && */!VariableDeclaration()) {
+    if (global)
+      QueueError("Expected procedure or variable declaration after 'global'");
+    return false;
+  }
+
+  return true;
+}
+
+/*
+<statement> ::= <assignment_statement> |
+                <if_statement> |
+                <loop_statement> |
+                <return_statement> |
+                <procedure_call>
+bool Parser::Statement() {
+  return true;
+}
+
+// <procedure_declaration> ::= <procedure_header> <procedure_body>
+bool Parser::ProcedureDeclaration() {
+  return true;
+}
+*/
+
+// <variable_declaration> ::= <type_mark> <identifier> [ [ <lower_bound> “:” <upper_bound> ] ]
+bool Parser::VariableDeclaration() {
+  // Not every usage of <variable_declaration> requires at least one variable
+  // declaration, so we can't queue an error here if we fail to retrieve a type
+  // mark. The caller must decide what to do. // TODO(domfarolino): Consider
+  // making this function aware of whether it is required to produce something,
+  // so we can report errors for TypeMark() failures when one is necessary.
+  if (!TypeMark())
+    return false;
+
+  if (!Identifier()) {
+    QueueError("Error parsing identifier in variable declaration");
+    return false;
+  }
+
+  if (CheckTokenType(TokenType::TLeftBracket)) {
+    // Declaring an array, lower and upper bound are required.
+
+    if (!LowerOrUpperBound()) {
+      QueueError("Error parsing array bound");
+      return false;
+    }
+
+    if (!CheckTokenType(TokenType::TColon)) {
+      QueueError("Expected ':' separating lower and upper array bounds");
+      return false;
+    }
+
+    if (!LowerOrUpperBound()) {
+      QueueError("Error parsing array bound");
+      return false;
+    }
+
+    if (!CheckTokenType(TokenType::TRightBracket)) {
+      QueueError("Expected ']' after array bounds");
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// <type_mark> ::= integer | float | string | bool | char
+bool Parser::TypeMark() {
+  return CheckTokenType(TokenType::TIntegerType) ||
+         CheckTokenType(TokenType::TFloatType)   ||
+         CheckTokenType(TokenType::TStringType)  ||
+         CheckTokenType(TokenType::TBoolType)    ||
+         CheckTokenType(TokenType::TCharType);
+}
+
+// <lower_bound> ::= [-] <number>
+// <upper_bound> ::= [-] <number>
+bool Parser::LowerOrUpperBound() {
+  bool isNegative = false;
+
+  if (CheckTokenType(TokenType::TMinus))
+    isNegative = true;
+
+  return Number();
+}
+
+// <number> ::= [0-9][0-9_]*[.[0-9_]*]
+bool Parser::Number() {
+  return CheckTokenType(TokenType::TInteger) ||
+         CheckTokenType(TokenType::TFloat);
 }

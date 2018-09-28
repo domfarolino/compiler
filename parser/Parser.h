@@ -28,6 +28,13 @@ private:
   bool ProgramHeader();
   bool ProgramBody();
   bool Identifier();
+  bool Declaration();
+  //bool Statement(); not implemented yet.
+  //bool ProcedureDeclaration(); not implemented yet.
+  bool VariableDeclaration();
+  bool TypeMark();
+  bool LowerOrUpperBound();
+  bool Number();
 };
 
 #endif

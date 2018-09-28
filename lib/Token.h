@@ -5,10 +5,14 @@
 
 enum class TokenType {
   // Types
+  TIntegerType,
   TInteger,
+  TFloatType,
   TFloat,
+  TStringType,
   TString,
-  TBool,
+  TBoolType, // TTrue, TFalse below
+  TCharType,
   TChar,
   TIdentifier,
   // Whitespace

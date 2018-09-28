@@ -19,10 +19,16 @@ in
 out
 inout
 integer
+1935238
 float
+289.2838
 string
+"chromium"
 bool
+true
+false
 char
+'a'
 [
 ]
 if
@@ -57,3 +63,5 @@ char test := 'a';
 bool true := false;
 a[1]:=a[1]+1;
 a[1] := a[1] + 1;
+float dominicArray [10:20];
+:::::=
