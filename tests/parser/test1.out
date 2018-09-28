@@ -1,5 +1,4 @@
-Tokenizing reserved word: program
 Parser is starting up!
-Tokenizing identifier: dominic
-Tokenizing reserved word: .
-Lexing complete...
+[1;31mLine 1: Missing 'is' in program header
+Line 1: Error parsing program header
+[0m
