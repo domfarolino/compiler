@@ -38,7 +38,7 @@ bool Parser::CheckTokenType(TokenType expectedTokenType) {
 
 // Queues a plain error message to the error queue, for later displaying.
 void Parser::QueueError(std::string inErrorString) {
-  errorQueue_.push(inErrorString);
+  errorQueue_.push("Line " + std::to_string(lexer_.lineNumber) + ": " + inErrorString);
 }
 
 void Parser::FlushErrors() {
