@@ -27,6 +27,7 @@ private:
   void Program();
   bool ProgramHeader();
   bool ProgramBody();
+  bool Identifier();
 };
 
 #endif

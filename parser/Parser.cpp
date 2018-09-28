@@ -26,6 +26,8 @@ bool Parser::CheckTokenType(TokenType expectedTokenType) {
   if (lexer_.isDone()) return false;
 
   // TODO(domfarolino): Handle invalid tokens, EOF, etc.
+  // ...
+
   if (token_.type == expectedTokenType) {
     token_ = lexer_.nextToken();
     return true;
@@ -66,7 +68,24 @@ void Parser::Program() {
 
 // <program_header> ::= program <identifier> is
 bool Parser::ProgramHeader() {
-  // TODO(domfarolino): Do this.
+  if (!CheckTokenType(TokenType::TProgram)) {
+    QueueError("Missing 'program' statement");
+    return false;
+  }
+
+  // program
+  if (!Identifier()) {
+    QueueError("Missing identifier in program header");
+    return false;
+  }
+
+  // program <identifier>
+  if (!CheckTokenType(TokenType::TIs)) {
+    QueueError("Missing 'is' in program header");
+    return false;
+  }
+
+  // program <identifier> is
   return true;
 }
 
@@ -74,4 +93,9 @@ bool Parser::ProgramHeader() {
 bool Parser::ProgramBody() {
   // TODO(domfarolino): Do this.
   return true;
+}
+
+bool Parser::Identifier() {
+  // TODO(domfarolino): We probably want to return the token here too later.
+  return CheckTokenType(TokenType::TIdentifier);
 }
