@@ -10,7 +10,9 @@
 Parser::Parser(Lexer& inLexer): lexer_(inLexer) {
   token_ = lexer_.nextToken();
   std::cout << "Parser is starting up!" << std::endl;
-  QueueError("This is the first error");
+
+  // Start parsing the program from the <program> production!
+  Program();
   FlushErrors();
 }
 
@@ -46,4 +48,30 @@ void Parser::FlushErrors() {
   }
 
   std::cerr << "\033[0m";
+}
+
+// <program> ::= <program_header> <program_body> .
+void Parser::Program() {
+  bool parsedHeader = ProgramHeader();
+  if (!parsedHeader)
+    QueueError("Error parsing program header");
+
+  bool parsedBody = ProgramBody();
+  if (!parsedBody)
+    QueueError("Error parsing program body");
+
+  if (!CheckTokenType(TokenType::TPeriod))
+    QueueError("Missing period ('.') at the end of program");
+}
+
+// <program_header> ::= program <identifier> is
+bool Parser::ProgramHeader() {
+  // TODO(domfarolino): Do this.
+  return true;
+}
+
+// <program_body> ::= ( <declaration> ; )* begin ( <statement> ; )* end program
+bool Parser::ProgramBody() {
+  // TODO(domfarolino): Do this.
+  return true;
 }

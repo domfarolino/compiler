@@ -18,10 +18,15 @@ private:
   Token token_;
   std::queue<std::string> errorQueue_;
 
-  // Methods
+  // Utility Methods
   bool CheckTokenType(TokenType);
   void QueueError(std::string);
   void FlushErrors();
+
+  // Productions
+  void Program();
+  bool ProgramHeader();
+  bool ProgramBody();
 };
 
 #endif
