@@ -1,0 +1,5 @@
+[1;31mLine 1: Expected 'program' in program header, but got: 'dominic'
+Line 1: Error parsing program header
+Line 1: Expected 'begin' in program body, but got: 'dominic'
+Line 1: Error parsing program body
+[0m

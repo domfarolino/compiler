@@ -1,0 +1,19 @@
+program dominic_farolino is
+
+  float dominic;
+  float dominic_array [10:20];
+
+  integer domint;
+  integer domint_array [0:40];
+
+  string domstring [0:11];
+  string domstring_array [30: 11];
+
+  bool dombool;
+  bool dombool_array [0:0];
+
+  char domCHAR;
+  char domCHAR_array [1:13];
+
+begin
+end program.

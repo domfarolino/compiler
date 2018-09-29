@@ -69,20 +69,20 @@ void Parser::Program() {
 
   if (!CheckTokenType(TokenType::TPeriod))
     QueueError("Missing period ('.') at the end of program");
-  else
+  else if (parsedHeader && parsedBody)
     std::cout << "Program compiled successfully" << std::endl;
 }
 
 // <program_header> ::= program <identifier> is
 bool Parser::ProgramHeader() {
   if (!CheckTokenType(TokenType::TProgram)) {
-    QueueError("Missing 'program' statement");
+    QueueExpectedTokenError("Expected 'program' in program header");
     return false;
   }
 
   // program
   if (!Identifier()) {
-    QueueError("Error parsing identifier in program header");
+    QueueExpectedTokenError("Expected program identifier in program header");
     return false;
   }
 
@@ -143,7 +143,7 @@ bool Parser::Declaration() {
 
   if (/*!ProcedureDeclaration() && */!VariableDeclaration()) {
     if (global)
-      QueueError("Expected procedure or variable declaration after 'global'");
+      QueueExpectedTokenError("Expected procedure or variable declaration after 'global'");
     return false;
   }
 
@@ -152,32 +152,33 @@ bool Parser::Declaration() {
 
 /*
 <statement> ::= <assignment_statement> |
-                <if_statement> |
-                <loop_statement> |
-                <return_statement> |
+                <if_statement>         |
+                <loop_statement>       |
+                <return_statement>     |
                 <procedure_call>
 bool Parser::Statement() {
   return true;
 }
+*/
 
 // <procedure_declaration> ::= <procedure_header> <procedure_body>
 bool Parser::ProcedureDeclaration() {
   return true;
 }
-*/
 
 // <variable_declaration> ::= <type_mark> <identifier> [ [ <lower_bound> “:” <upper_bound> ] ]
 bool Parser::VariableDeclaration() {
-  // Not every usage of <variable_declaration> requires at least one variable
-  // declaration, so we can't queue an error here if we fail to retrieve a type
-  // mark. The caller must decide what to do. // TODO(domfarolino): Consider
-  // making this function aware of whether it is required to produce something,
-  // so we can report errors for TypeMark() failures when one is necessary.
+  // Not necessary to find one in all usages, so if the first part of our
+  // production cannot be found, we can't report an error here, and instead
+  // leave error reporting up to the caller, who has more context.
+  // TODO(domfarolino): Consider making functions like this aware of whether
+  // they are required to produce something, and thus capable of handling errors
+  // at this level.
   if (!TypeMark())
     return false;
 
   if (!Identifier()) {
-    QueueError("Error parsing identifier in variable declaration");
+    QueueExpectedTokenError("Expected identifier in variable declaration");
     return false;
   }
 
@@ -209,6 +210,8 @@ bool Parser::VariableDeclaration() {
 }
 
 // <type_mark> ::= integer | float | string | bool | char
+// Not necessary to find one in all usages, so we leave error reporting to the
+// caller.
 bool Parser::TypeMark() {
   return CheckTokenType(TokenType::TIntegerType) ||
          CheckTokenType(TokenType::TFloatType)   ||
@@ -229,6 +232,8 @@ bool Parser::LowerOrUpperBound() {
 }
 
 // <number> ::= [0-9][0-9_]*[.[0-9_]*]
+// Not necessary to find one in all usages, so we leave error reporting to the
+// caller.
 bool Parser::Number() {
   return CheckTokenType(TokenType::TInteger) ||
          CheckTokenType(TokenType::TFloat);

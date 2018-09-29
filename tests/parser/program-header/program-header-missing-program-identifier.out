@@ -1,0 +1,5 @@
+[1;31mLine 1: Expected program identifier in program header, but got: 'is'
+Line 1: Error parsing program header
+Line 1: Expected 'begin' in program body, but got: 'is'
+Line 1: Error parsing program body
+[0m

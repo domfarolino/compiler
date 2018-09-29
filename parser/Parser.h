@@ -31,7 +31,7 @@ private:
   bool Identifier();
   bool Declaration();
   //bool Statement(); not implemented yet.
-  //bool ProcedureDeclaration(); not implemented yet.
+  bool ProcedureDeclaration();
   bool VariableDeclaration();
   bool TypeMark();
   bool LowerOrUpperBound();
