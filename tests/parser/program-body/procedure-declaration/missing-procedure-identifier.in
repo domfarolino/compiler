@@ -1,0 +1,4 @@
+program dominic is
+  procedure (string dominic in);
+begin
+end program .

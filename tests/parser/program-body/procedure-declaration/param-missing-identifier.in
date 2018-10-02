@@ -1,0 +1,3 @@
+program dominic is
+  procedure domFunc(string inout);
+begin end program.

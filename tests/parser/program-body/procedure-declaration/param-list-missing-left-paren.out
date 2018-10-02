@@ -1,0 +1,3 @@
+[1;31mLine 2: Expected '(' before parameter list in procedure header, but got: 'string'
+Line 2: Error parsing program body
+[0m

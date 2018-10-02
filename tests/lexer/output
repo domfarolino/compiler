@@ -136,4 +136,13 @@ Tokenizing reserved word: :
 Tokenizing reserved word: :
 Tokenizing reserved word: :
 Tokenizing reserved word: :=
+Tokenizing identifier: this
+Tokenizing reserved word: ,
+Tokenizing reserved word: is
+Tokenizing reserved word: ,
+Tokenizing identifier: testing
+Tokenizing reserved word: ,
+Tokenizing identifier: commas
+Tokenizing reserved word: ,
+Tokenizing string: "woo"
 Lexing complete...

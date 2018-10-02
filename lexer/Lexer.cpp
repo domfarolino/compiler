@@ -10,6 +10,7 @@
 Lexer::Lexer(const std::string& program, bool inVerbose = false): source(program, std::fstream::in), lineNumber(1), done(false), verbose_(inVerbose),
   reservedWords({
     {".", TokenType::TPeriod},
+    {",", TokenType::TComma},
     {"program", TokenType::TProgram},
     {"is", TokenType::TIs},
     {";", TokenType::TSemicolon},

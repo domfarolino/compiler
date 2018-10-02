@@ -32,6 +32,10 @@ private:
   bool Declaration();
   //bool Statement(); not implemented yet.
   bool ProcedureDeclaration();
+  bool ProcedureHeader();
+  bool ParameterList();
+  bool Parameter();
+  bool ProcedureBody();
   bool VariableDeclaration();
   bool TypeMark();
   bool LowerOrUpperBound();

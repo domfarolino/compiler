@@ -1,0 +1,3 @@
+[1;31mLine 2: Expected identifier in variable declaration, but got: 'inout'
+Line 2: Error parsing program body
+[0m
