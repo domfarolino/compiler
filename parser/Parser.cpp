@@ -215,7 +215,7 @@ bool Parser::Statement() {
 
 // <procedure_declaration> ::= <procedure_header> <procedure_body>
 bool Parser::ProcedureDeclaration() {
-  // This is not a valid ProcedureDeclaration, is the ProcedureHeader is either
+  // This is not a valid ProcedureDeclaration, if the ProcedureHeader is either
   // missing or invalid.
   if (!ProcedureHeader())
     return false;
@@ -308,6 +308,40 @@ bool Parser::Parameter() {
 
 // <procedure_body> ::= (<declaration>;)* begin (<statement>;)* end procedure
 bool Parser::ProcedureBody() {
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  while (Declaration()) {
+    if (!CheckTokenType(TokenType::TSemicolon)) {
+      QueueExpectedTokenError("Expected ';' after declaration");
+      return false;
+    }
+  }
+
+  // Declaration() isn't required, so there are two reasons it may return false:
+  // For these reasons, see ProgramBody() above.
+  if (errorQueue_.size() > errorQueueSizeSnapshot)
+    return false;
+
+  if (!CheckTokenType(TokenType::TBegin)) {
+    QueueExpectedTokenError("Expected 'begin' in procedure body");
+    return false;
+  }
+
+  // For now we're only doing declarations
+  /*
+  while (Statement()) {
+    if (!CheckTokenType(TokenType::TSemicolon)) {
+      QueueExpectedTokenError("Expected ';' after statement");
+      return false;
+    }
+  }
+  */
+
+  if (!CheckTokenType(TokenType::TEnd) ||
+      !CheckTokenType(TokenType::TProcedure)) {
+    QueueExpectedTokenError("Expected 'end program' after procedure body");
+    return false;
+  }
+
   return true;
 }
 

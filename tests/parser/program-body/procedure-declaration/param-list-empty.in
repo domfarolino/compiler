@@ -1,3 +1,5 @@
 program dominic is
-  procedure domfarolinoFunc();
+  procedure domfarolinoFunc()
+  begin
+  end procedure;
 begin end program.

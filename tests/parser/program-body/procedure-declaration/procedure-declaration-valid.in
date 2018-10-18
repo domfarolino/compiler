@@ -1,8 +1,12 @@
 program dominic is
   integer dominic;
-  procedure function1(integer arg1 in, float arg2 in, bool arg3 in, string arg4 out, char arg5 inout);
+  procedure function1(integer arg1 in, float arg2 in, bool arg3 in, string arg4 out, char arg5 inout)
+  begin
+  end procedure;
   string dominic2 [10 : 22];
-  procedure function1(string inArray_forDOM_AT_CHROMIUM_DOT_ORG [4 : 18] out);
+  procedure function1(string inArray_forDOM_AT_CHROMIUM_DOT_ORG [4 : 18] out)
+  begin
+  end procedure;
 
 begin
 end program.

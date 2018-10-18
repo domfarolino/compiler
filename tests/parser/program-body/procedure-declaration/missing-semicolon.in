@@ -1,4 +1,6 @@
 program dominic is
   procedure myFunc(string dominic in)
+  begin
+  end procedure
 begin
 end program .
