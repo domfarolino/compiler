@@ -149,15 +149,16 @@ bool Parser::ProgramBody() {
     return false;
   }
 
-  // For now we're only doing declarations
-  /*
   while (Statement()) {
     if (!CheckTokenType(TokenType::TSemicolon)) {
       QueueExpectedTokenError("Expected ';' after statement");
       return false;
     }
   }
-  */
+
+  // Same error checking as above.
+  if (errorQueue_.size() > errorQueueSizeSnapshot)
+    return false;
 
   if (!CheckTokenType(TokenType::TEnd) ||
       !CheckTokenType(TokenType::TProgram)) {
@@ -175,6 +176,44 @@ bool Parser::Identifier() {
   // to see if it is a reserved word and throw a more specific error, like "can
   // not use reserved word as identifier" or something.
   return CheckTokenType(TokenType::TIdentifier);
+}
+
+// <string> :: = "[a-zA-Z0-9 _,;:.']*"
+bool Parser::String() {
+  return CheckTokenType(TokenType::TString);
+}
+
+// <char> ::= '[a-zA-Z0-9 _;:."]'
+bool Parser::Char() {
+  return CheckTokenType(TokenType::TChar);
+}
+
+// <name> ::= <identifier> [ [ <expression> ] ]
+// This is identical to Destination(). For now I'm keeping the duplication, in
+// case one changes from the other significantly during code-gen perhaps.
+bool Parser::Name() {
+  // <name> is not required (see <factor>).
+  if (!Identifier())
+    return false;
+
+  // <identifier>
+  if (CheckTokenType(TokenType::TLeftBracket)) {
+
+    // <identifier> [
+    if (!Expression()) {
+      QueueExpectedTokenError("Expected expression after '[' in name");
+      return false;
+    }
+
+    // <identifier> [ <expression>
+    if (!CheckTokenType(TokenType::TRightBracket)) {
+      QueueExpectedTokenError("Expected ']' after expression in name");
+      return false;
+    }
+  }
+
+  // <identifier> [ <expression> ]
+  return true;
 }
 
 // <declaration> ::= [ global ] <procedure_declaration> | [ global ] <variable_declaration>
@@ -202,16 +241,251 @@ bool Parser::Declaration() {
   return false;
 }
 
-/*
-<statement> ::= <assignment_statement> |
-                <if_statement>         |
-                <loop_statement>       |
-                <return_statement>     |
-                <procedure_call>
+// <statement> ::= <assignment_statement> |
+//                 <if_statement>         |
+//                 <loop_statement>       |
+//                 <return_statement>     |
+//                 <procedure_call>
 bool Parser::Statement() {
+  return AssignmentStatement();
+}
+
+// <assignment_statement> ::= <destination> := <expression>
+bool Parser::AssignmentStatement() {
+  // <assignment_statement> is not required, as up the chain it is part of a
+  // (<statement>;)*, so if we fail to find the first token we cannot queue
+  // an error quite yet.
+  if (!Destination())
+    return false;
+
+  // <destination>
+  if (!CheckTokenType(TokenType::TColonEq)) {
+    QueueExpectedTokenError("Expected ':=' after destination in assignment statement");
+    return false;
+  }
+
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  // <destination> :=
+  if (!Expression()) {
+    // Only queue an error if Expression didn't already (sometimes it does!).
+    if (errorQueueSizeSnapshot == errorQueue_.size())
+      QueueExpectedTokenError("Expected expression for destination in assignment statement");
+    return false;
+  }
+
+  // <destination> := <expression>
   return true;
 }
-*/
+
+// <destination> ::= <identifier> [ [ <expression> ] ]
+bool Parser::Destination() {
+  // <destination> is not required (see <assignment_statement>).
+  if (!Identifier())
+    return false;
+
+  // <identifier>
+  if (CheckTokenType(TokenType::TLeftBracket)) {
+
+    // <identifier> [
+    if (!Expression()) {
+      QueueExpectedTokenError("Expected expression after '[' in assignment statement");
+      return false;
+    }
+
+    // <identifier> [ <expression>
+    if (!CheckTokenType(TokenType::TRightBracket)) {
+      QueueExpectedTokenError("Expected ']' after expression in assignment destination");
+      return false;
+    }
+  }
+
+  // <identifier> [ <expression> ]
+  return true;
+}
+
+/////////////////////////////// Expression ////////////////////////////////////
+
+// <expression> ::= [ not ] <arithOp> <expressionPrime>
+// Expression is not always required, so this function will only queue errors
+// when something bad happens, not just for non-existence.
+bool Parser::Expression() {
+  bool notIsPresent = false;
+  if (CheckTokenType(TokenType::TNot))
+    notIsPresent = true;
+
+  // [ not ]
+  if (!ArithOp())
+    return false;
+
+  // [ not ] <arithOp>
+  if (!ExpressionPrime())
+    return false;
+
+  // [ not ] <arithOp> <expressionPrime>
+  return true;
+}
+
+// <expressionPrime> ::= & <arithOp> <expressionPrime> |
+//                       | <arithOp> <expressionPrime> |
+//                       ε
+bool Parser::ExpressionPrime() {
+  if (CheckTokenType(TokenType::TAmp) || CheckTokenType(TokenType::TOr)) {
+    // & or |
+    if (!ArithOp())
+      return false;
+
+    // & or | <arithOp>
+    return ExpressionPrime();
+  }
+
+  // ε
+  return true;
+}
+
+//////////////////////////// End Expression ////////////////////////////////
+
+/////////////////////////////// ArithOp ////////////////////////////////////
+
+// <arithOp> ::= <relation> <arithOpPrime>
+bool Parser::ArithOp() {
+  if (!Relation())
+    return false;
+
+  // <relation>
+  return ArithOpPrime();
+}
+
+// <arithOpPrime> ::= + <relation> <arithOpPrime> | - <relation> <arithOpPrime> | ε
+bool Parser::ArithOpPrime() {
+  if (CheckTokenType(TokenType::TPlus) || CheckTokenType(TokenType::TMinus)) {
+    // + or -
+    if (!Relation())
+      return false;
+
+    // + or - <relation>
+    return ArithOpPrime();
+  }
+
+  // ε
+  return true;
+}
+
+///////////////////////////// End ArithOp //////////////////////////////////
+
+////////////////////////////// Relation ////////////////////////////////////
+
+// <relation> ::= <term> <relationPrime>
+bool Parser::Relation() {
+  if (!Term())
+    return false;
+
+  // <term>
+  return RelationPrime();
+}
+
+// <relationPrime> ::= < <term> <relationPrime> |
+//                    >= <term> <relationPrime> |
+//                    <= <term> <relationPrime> |
+//                     > <term> <relationPrime> |
+//                    == <term> <relationPrime> |
+//                    != <term> <relationPrime> | ε
+bool Parser::RelationPrime() {
+  if (CheckTokenType(TokenType::TLessThan) ||
+      CheckTokenType(TokenType::TGreaterThanEq) ||
+      CheckTokenType(TokenType::TLessThanEq) ||
+      CheckTokenType(TokenType::TGreaterThan) ||
+      CheckTokenType(TokenType::TCompareEq) ||
+      CheckTokenType(TokenType::TNotEq)) {
+    // < or >= or ... or !=
+    if (!Term())
+      return false;
+
+    // < or >= or ... or != <term>
+    return RelationPrime();
+  }
+
+  // ε
+  return true;
+}
+
+//////////////////////////// End Relation //////////////////////////////////
+
+//////////////////////////////// Term //////////////////////////////////////
+
+// <term> ::= <factor> <termPrime>
+bool Parser::Term() {
+  if (!Factor())
+    return false;
+
+  // <factor>
+  return TermPrime();
+}
+
+// <termPrime> ::= * <factor> <termPrime> | / <factor> <termPrime> | ε
+bool Parser::TermPrime() {
+  if (CheckTokenType(TokenType::TMultiply) ||
+      CheckTokenType(TokenType::TDivide)) {
+    // * or /
+    if (!Factor())
+      return false;
+
+    // * or / <factor>
+    return TermPrime();
+  }
+
+  // ε
+  return true;
+}
+
+////////////////////////////// End Term ////////////////////////////////////
+
+// <factor> ::= ( <expression> ) | [ - ] <name> | [ - ] <number> | <string> | <char> | true | false
+bool Parser::Factor() {
+  bool minus = false;
+  if (CheckTokenType(TokenType::TMinus))
+    minus = true;
+
+  if (Name()) {
+    // Do some processing here.
+    return true;
+  }
+
+  if (Number()) {
+    // Do some processing here.
+    return true;
+  }
+
+  if (minus) {
+    QueueExpectedTokenError("Unexpected '-' before factor that is not a number or name");
+    return false;
+  }
+
+  if (CheckTokenType(TokenType::TLeftParen)) {
+    // (
+    if (!Expression()) {
+      QueueExpectedTokenError("Expected after expression after '(' in factor");
+      return false;
+    }
+
+    // ( <expression>
+    if (!CheckTokenType(TokenType::TRightParen)) {
+      QueueExpectedTokenError("Expected ')' after expression in factor");
+      return false;
+    }
+
+    // ( <expression> )
+    return true;
+  } else if (CheckTokenType(TokenType::TTrue) ||
+             CheckTokenType(TokenType::TFalse)) { // Boolean types.
+    return true;
+  } else if (String()) { // String type.
+    return true;
+  } else if (Char()) { // Char type.
+    return true;
+  }
+
+  return false;
+}
 
 // <procedure_declaration> ::= <procedure_header> <procedure_body>
 bool Parser::ProcedureDeclaration() {
@@ -228,7 +502,7 @@ bool Parser::ProcedureDeclaration() {
 // <procedure_header> :: = procedure <identifier> ( [<parameter_list>] )
 bool Parser::ProcedureHeader() {
   // A <procedure_header> doesn't always have to exist (as up the chain it is
-  // eventually a (declaration*), which can appear no times), so if the first
+  // eventually a (<declaration>;)*, which can appear no times), so if the first
   // terminal of a production like this, we have to let our caller decide
   // whether it is appropriate to throw an error. This is very similar to what
   // we do in VariableDeclaration, since it seeks for the first terminal in a
@@ -326,15 +600,16 @@ bool Parser::ProcedureBody() {
     return false;
   }
 
-  // For now we're only doing declarations
-  /*
   while (Statement()) {
     if (!CheckTokenType(TokenType::TSemicolon)) {
       QueueExpectedTokenError("Expected ';' after statement");
       return false;
     }
   }
-  */
+
+  // Same error checking as above.
+  if (errorQueue_.size() > errorQueueSizeSnapshot)
+    return false;
 
   if (!CheckTokenType(TokenType::TEnd) ||
       !CheckTokenType(TokenType::TProcedure)) {

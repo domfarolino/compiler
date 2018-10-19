@@ -1,8 +1,6 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
-#include <iostream>
-
 enum class TokenType {
   // Types
   TIntegerType,

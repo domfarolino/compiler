@@ -1,0 +1,11 @@
+program dominic is
+
+  integer dominic;
+  float farolino;
+
+begin
+
+  dominic := true * (false);
+  farolino := (10 * (-dominic)) / 2;
+
+end program.

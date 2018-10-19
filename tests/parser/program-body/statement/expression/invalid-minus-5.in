@@ -1,0 +1,9 @@
+program dominic is
+
+  integer farolino;
+
+begin
+
+  farolino := -(3 + 1);
+
+end program.

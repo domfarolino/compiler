@@ -29,8 +29,22 @@ private:
   bool ProgramHeader();
   bool ProgramBody();
   bool Identifier();
+  bool String();
+  bool Char();
+  bool Name();
   bool Declaration();
-  //bool Statement(); not implemented yet.
+  bool Statement();
+  bool AssignmentStatement();
+  bool Destination();
+  bool Expression();
+  bool ExpressionPrime();
+  bool ArithOp();
+  bool ArithOpPrime();
+  bool Relation();
+  bool RelationPrime();
+  bool Term();
+  bool TermPrime();
+  bool Factor();
   bool ProcedureDeclaration();
   bool ProcedureHeader();
   bool ParameterList();

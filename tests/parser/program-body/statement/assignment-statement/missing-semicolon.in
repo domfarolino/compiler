@@ -1,0 +1,9 @@
+program dominic is
+
+  integer dominic;
+
+begin
+
+  dominic := true
+
+end program.
