@@ -1,0 +1,3 @@
+[1;31mLine 11: Expected 'end for' after for loop statements, but got: ';'
+Line 11: Error parsing program body
+[0m

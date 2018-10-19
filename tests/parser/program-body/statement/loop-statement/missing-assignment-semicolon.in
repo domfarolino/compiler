@@ -1,0 +1,12 @@
+program dominic is
+
+  integer dominic;
+  integer n;
+
+begin
+
+  n := 10;
+  for (dominic := (n / 2) dominic < n)
+  end for;
+
+end program.

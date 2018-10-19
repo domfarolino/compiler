@@ -1,0 +1,13 @@
+program dominic is
+
+  integer dominic;
+
+begin
+
+  for (dominic := 0; dominic < (dominic * dominic))
+    dominic := dominic + 1;
+  end for;
+
+  for (dominic := 0; dominic + (dominic + 1) <= 32 + 12 / 6)
+  end for;
+end program.

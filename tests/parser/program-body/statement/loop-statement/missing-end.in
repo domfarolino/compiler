@@ -1,0 +1,13 @@
+program dominic is
+
+  integer dominic;
+  integer n;
+
+begin
+
+  n := 10;
+  for (dominic := 0; dominic < n)
+    dominic := dominic + 1;
+  ;
+
+end program.

@@ -247,7 +247,7 @@ bool Parser::Declaration() {
 //                 <return_statement>     |
 //                 <procedure_call>
 bool Parser::Statement() {
-  return AssignmentStatement();
+  return AssignmentStatement() || LoopStatement();
 }
 
 // <assignment_statement> ::= <destination> := <expression>
@@ -485,6 +485,66 @@ bool Parser::Factor() {
   }
 
   return false;
+}
+
+// <loop_statement> ::= for ( <assignment_statement> ; <expression> ) ( <statement> ; )* end for
+bool Parser::LoopStatement() {
+  // <loop_statement> is not required, so if.
+  if (!CheckTokenType(TokenType::TFor))
+    return false;
+
+  // for
+  if (!CheckTokenType(TokenType::TLeftParen)) {
+    QueueExpectedTokenError("Expected '(' after 'for' in for loop");
+    return false;
+  }
+
+  // for (
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  // Only queue an error if AssignmentStatement did not (sometimes it does!).
+  if (!AssignmentStatement() && errorQueueSizeSnapshot == errorQueue_.size()) {
+    QueueExpectedTokenError("Expected assignment statement after '(' in for loop");
+    return false;
+  }
+
+  // for ( <assignment_statement>
+  if (!CheckTokenType(TokenType::TSemicolon)) {
+    QueueExpectedTokenError("Expected ';' after assignment statement in for loop");
+    return false;
+  }
+
+  // for ( <assignment_statement> ;
+  if (!Expression() && errorQueueSizeSnapshot == errorQueue_.size()) {
+    QueueExpectedTokenError("Expected expression after ';' in for loop");
+    return false;
+  }
+
+  // for ( <assignment_statement> ; <expression>
+  if (!CheckTokenType(TokenType::TRightParen)) {
+    QueueExpectedTokenError("Expected ')' after expression in for loop statement");
+    return false;
+  }
+
+  // for ( <assignment_statement> ; <expression> )
+  while (Statement()) {
+    if (!CheckTokenType(TokenType::TSemicolon)) {
+      QueueExpectedTokenError("Expected ';' after statement in for loop");
+      return false;
+    }
+  }
+
+  // Same error checking as above.
+  if (errorQueue_.size() > errorQueueSizeSnapshot)
+    return false;
+
+  // for ( <assignment_statement> ; <expression> ) ( <statement> ; )*
+  if (!CheckTokenType(TokenType::TEnd) || !CheckTokenType(TokenType::TFor)) {
+    QueueExpectedTokenError("Expected 'end for' after for loop statements");
+    return false;
+  }
+
+  // for ( <assignment_statement> ; <expression> ) ( <statement> ; )* end for
+  return true;
 }
 
 // <procedure_declaration> ::= <procedure_header> <procedure_body>
