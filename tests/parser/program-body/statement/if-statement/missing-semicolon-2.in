@@ -1,0 +1,14 @@
+program dominic is
+
+  integer dominic;
+
+begin
+  dominic := 10;
+
+  if (dominic == 10) then
+    dominic := 11;
+  else
+    dominic := 12
+  end if;
+
+end program.

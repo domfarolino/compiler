@@ -46,6 +46,7 @@ private:
   bool TermPrime();
   bool Factor();
   bool LoopStatement();
+  bool IfStatement();
   bool ProcedureDeclaration();
   bool ProcedureHeader();
   bool ParameterList();

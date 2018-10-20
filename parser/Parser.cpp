@@ -247,7 +247,7 @@ bool Parser::Declaration() {
 //                 <return_statement>     |
 //                 <procedure_call>
 bool Parser::Statement() {
-  return AssignmentStatement() || LoopStatement();
+  return AssignmentStatement() || LoopStatement() || IfStatement();
 }
 
 // <assignment_statement> ::= <destination> := <expression>
@@ -318,8 +318,12 @@ bool Parser::Expression() {
     return false;
 
   // [ not ] <arithOp>
-  if (!ExpressionPrime())
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  if (!ExpressionPrime()) {
+    if (errorQueueSizeSnapshot == errorQueue_.size())
+      QueueExpectedTokenError("Error parsing expression. Expected valid syntax");
     return false;
+  }
 
   // [ not ] <arithOp> <expressionPrime>
   return true;
@@ -352,7 +356,15 @@ bool Parser::ArithOp() {
     return false;
 
   // <relation>
-  return ArithOpPrime();
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  if (!ArithOpPrime()) {
+    if (errorQueueSizeSnapshot == errorQueue_.size())
+      QueueExpectedTokenError("Error parsing expression operator. Expected valid syntax");
+    return false;
+  }
+
+  // <relation> <arithOpPrime>
+  return true;
 }
 
 // <arithOpPrime> ::= + <relation> <arithOpPrime> | - <relation> <arithOpPrime> | ε
@@ -380,7 +392,15 @@ bool Parser::Relation() {
     return false;
 
   // <term>
-  return RelationPrime();
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  if (!RelationPrime()) {
+    if (errorQueueSizeSnapshot == errorQueue_.size())
+      QueueExpectedTokenError("Error parsing expression relation. Expected valid syntax");
+    return false;
+  }
+
+  // <term> <relationPrime>
+  return true;
 }
 
 // <relationPrime> ::= < <term> <relationPrime> |
@@ -418,7 +438,15 @@ bool Parser::Term() {
     return false;
 
   // <factor>
-  return TermPrime();
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  if (!TermPrime()) {
+    if (errorQueueSizeSnapshot == errorQueue_.size())
+      QueueExpectedTokenError("Error parsing expression term. Expected valid syntax");
+    return false;
+  }
+
+  // <factor> <termPrime>
+  return true;
 }
 
 // <termPrime> ::= * <factor> <termPrime> | / <factor> <termPrime> | ε
@@ -489,7 +517,8 @@ bool Parser::Factor() {
 
 // <loop_statement> ::= for ( <assignment_statement> ; <expression> ) ( <statement> ; )* end for
 bool Parser::LoopStatement() {
-  // <loop_statement> is not required, so if.
+  // <loop_statement> is not required; cannot queue error if first token is not
+  // found.
   if (!CheckTokenType(TokenType::TFor))
     return false;
 
@@ -514,8 +543,9 @@ bool Parser::LoopStatement() {
   }
 
   // for ( <assignment_statement> ;
-  if (!Expression() && errorQueueSizeSnapshot == errorQueue_.size()) {
-    QueueExpectedTokenError("Expected expression after ';' in for loop");
+  if (!Expression()) {
+    if (errorQueueSizeSnapshot == errorQueue_.size())
+      QueueExpectedTokenError("Expected expression after ';' in for loop");
     return false;
   }
 
@@ -539,11 +569,105 @@ bool Parser::LoopStatement() {
 
   // for ( <assignment_statement> ; <expression> ) ( <statement> ; )*
   if (!CheckTokenType(TokenType::TEnd) || !CheckTokenType(TokenType::TFor)) {
-    QueueExpectedTokenError("Expected 'end for' after for loop statements");
+    QueueExpectedTokenError("Expected 'end for' after for loop statement");
     return false;
   }
 
   // for ( <assignment_statement> ; <expression> ) ( <statement> ; )* end for
+  return true;
+}
+
+// <if_statement> ::= if ( <expression> ) then ( <statement> ; )+ [ else ( <statement> ; )+ ] end if
+bool Parser::IfStatement() {
+  // <if_statement> is not required; cannot queue error if first token is not
+  // found.
+  if (!CheckTokenType(TokenType::TIf))
+    return false;
+
+  // if
+  if (!CheckTokenType(TokenType::TLeftParen)) {
+    QueueExpectedTokenError("Expected '(' after 'if' in if statement");
+    return false;
+  }
+
+  // if (
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  if (!Expression()) {
+    if (errorQueueSizeSnapshot == errorQueue_.size())
+      QueueExpectedTokenError("Expected expression in if statement after '('");
+    return false;
+  }
+
+  // if ( <expression>
+  if (!CheckTokenType(TokenType::TRightParen)) {
+    QueueExpectedTokenError("Expected ')' after 'if' in if statement");
+    return false;
+  }
+
+  // if ( <expression> )
+  if (!CheckTokenType(TokenType::TThen)) {
+    QueueExpectedTokenError("Expected 'then' after '( <expression> )' in if statement");
+    return false;
+  }
+
+  // if ( <expression> ) then
+  if (!Statement()) {
+    if (errorQueueSizeSnapshot == errorQueue_.size())
+      QueueExpectedTokenError("Expected at least one statement after 'then' in if statement");
+    return false;
+  }
+
+  // if ( <expression> ) then <statement>
+  if (!CheckTokenType(TokenType::TSemicolon)) {
+      QueueExpectedTokenError("Expected ';' after statement under 'then' in if statement");
+    return false;
+  }
+
+  // if ( <expression> ) then <statement> ;
+  while (Statement()) {
+    if (!CheckTokenType(TokenType::TSemicolon)) {
+      QueueExpectedTokenError("Expected ';' after statement under 'then' in if statement");
+      return false;
+    }
+  }
+
+  if (errorQueue_.size() > errorQueueSizeSnapshot)
+    return false;
+
+  // if ( <expression> ) then ( <statement> ; )+
+  if (CheckTokenType(TokenType::TElse)) {
+
+    if (!Statement()) {
+      if (errorQueueSizeSnapshot == errorQueue_.size())
+        QueueExpectedTokenError("Expected at least one statement after 'else' in if statement");
+      return false;
+    }
+
+    // if ( <expression> ) then ( <statement> ; )+ else <statement>
+    if (!CheckTokenType(TokenType::TSemicolon)) {
+      QueueExpectedTokenError("Expected ';' after statement under 'else' in if statement");
+      return false;
+    }
+
+    // if ( <expression> ) then ( <statement> ; )+ else <statement> ;
+    while (Statement()) {
+      if (!CheckTokenType(TokenType::TSemicolon)) {
+        QueueExpectedTokenError("Expected ';' after statement under 'else' in if statement");
+        return false;
+      }
+    }
+
+    if (errorQueue_.size() > errorQueueSizeSnapshot)
+      return false;
+  }
+
+  // if ( <expression> ) then ( <statement> ; )+ [ else ( <statement> ; )+ ]
+  if (!CheckTokenType(TokenType::TEnd) || !CheckTokenType(TokenType::TIf)) {
+    QueueExpectedTokenError("Expected 'end if' after if statement");
+    return false;
+  }
+
+  // if ( <expression> ) then ( <statement> ; )+ [ else ( <statement> ; )+ ] end if
   return true;
 }
 
