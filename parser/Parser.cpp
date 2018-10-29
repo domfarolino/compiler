@@ -4,6 +4,7 @@
 #include <string>
 #include <queue>
 
+#include "../scope/ScopeManager.h"
 #include "../lexer/Lexer.h"
 #include "../lib/Token.h"
 
@@ -33,7 +34,7 @@
  * because it did not exist. This seems like less checks, but I could be wrong.
  */
 
-Parser::Parser(Lexer& inLexer): lexer_(inLexer) {
+Parser::Parser(Lexer& inLexer, ScopeManager &inScopes): lexer_(inLexer), scopeManager_(inScopes) {
   token_ = lexer_.nextToken();
 
   // Start parsing the program from the <program> production!
@@ -83,6 +84,9 @@ void Parser::FlushErrors() {
 
 // <program> ::= <program_header> <program_body> .
 void Parser::Program() {
+  // The ScopeManager is initialized with a global scope, so as long as there
+  // is only one "program" in any given parse, we don't have to explicitly enter
+  // a new scope.
   bool parsedHeader = ProgramHeader();
   if (!parsedHeader)
     QueueError("Error parsing program header");
@@ -247,7 +251,24 @@ bool Parser::Declaration() {
 //                 <return_statement>     |
 //                 <procedure_call>
 bool Parser::Statement() {
-  return AssignmentStatement() || LoopStatement() || IfStatement();
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  if (IfStatement()) return true;
+  else if (errorQueue_.size() > errorQueueSizeSnapshot)
+    return false;
+
+  if (LoopStatement()) return true;
+  else if (errorQueue_.size() > errorQueueSizeSnapshot)
+    return false;
+
+  if (AssignmentStatement()) return true;
+  else if (errorQueue_.size() > errorQueueSizeSnapshot)
+    return false;
+
+  if (ProcedureCall()) return true;
+  else if (errorQueue_.size() > errorQueueSizeSnapshot)
+    return false;
+
+  return false;
 }
 
 // <assignment_statement> ::= <destination> := <expression>
@@ -671,8 +692,53 @@ bool Parser::IfStatement() {
   return true;
 }
 
+// <procedure_call> ::= <identifier> ( [<argument_list>] )
+bool Parser::ProcedureCall() {
+  // ProcedureCall is not required, so don't queue error if first token is not
+  // found.
+  if (!Identifier())
+    return false;
+
+  // <identifier>
+  if (!CheckTokenType(TokenType::TLeftParen)) {
+    QueueExpectedTokenError("Expected '(' after procedure identifier to invoke procedure");
+    return false;
+  }
+
+  // <identifier> (
+  // An ArgumentList is optional for procedure invocation, so if
+  // ArgumentList() returned false only because it didn't exist, we can't let
+  // that make us return false here, since the rest of ProcedureCall existed
+  // just fine. We only want to propagate errors.
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  if (!ArgumentList() && errorQueue_.size() > errorQueueSizeSnapshot)
+    return false;
+
+  return true;
+}
+
+// <argument_list> ::= <expression> , <argument_list> | <expression>
+bool Parser::ArgumentList() {
+  // The language allows empty argument lists, so Expression() could have
+  // returned false because it didn't exist, or because it failed to parse.
+  // If it failed to parse, Expression will take care of queueing an error.
+  if (!Expression())
+    return false;
+
+  int errorQueueSizeSnapshot = errorQueue_.size();
+  while (CheckTokenType(TokenType::TComma)) {
+    if (!Expression() && errorQueueSizeSnapshot == errorQueue_.size()) {
+      QueueError("Expected parameter after ',' in parameter list");
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // <procedure_declaration> ::= <procedure_header> <procedure_body>
 bool Parser::ProcedureDeclaration() {
+  scopeManager_.enterScope();
   // This is not a valid ProcedureDeclaration, if the ProcedureHeader is either
   // missing or invalid.
   if (!ProcedureHeader())
@@ -680,7 +746,9 @@ bool Parser::ProcedureDeclaration() {
 
   // <procedure_header>
   // Same goes for ProcedureBody...
-  return ProcedureBody();
+  bool parsedBody = ProcedureBody();
+  scopeManager_.leaveScope();
+  return parsedBody;
 }
 
 // <procedure_header> :: = procedure <identifier> ( [<parameter_list>] )
@@ -706,7 +774,7 @@ bool Parser::ProcedureHeader() {
     return false;
   }
 
-  // "procedure <identifier>("
+  // "procedure <identifier> ("
   // A ParameterList is optional, so if ParameterList() returned false only
   // because it didn't exist, we can't let that make us return false here, since
   // the rest of ProcedureHeader existed just fine. We only want to propagate

@@ -1,0 +1,14 @@
+program dominic is
+  integer myInt;
+  integer myFloat;
+  bool myBool;
+  string myString;
+  char myChar;
+
+  procedure fn(integer arg1 in, float arg2 in, bool arg3 in, string arg4 out, char arg5 inout)
+  begin
+  end procedure;
+
+begin
+  fn(myInt, myFloat, myBool, myString, myChar);
+end program.

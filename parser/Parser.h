@@ -7,14 +7,16 @@
 #include "../lib/Token.h"
 
 class Lexer;
+class ScopeManager;
 
 class Parser {
 public:
-  Parser(Lexer&);
+  Parser(Lexer&, ScopeManager&);
 
 private:
   // Members
   Lexer& lexer_;
+  ScopeManager& scopeManager_;
   Token token_;
   std::queue<std::string> errorQueue_;
 
@@ -47,6 +49,8 @@ private:
   bool Factor();
   bool LoopStatement();
   bool IfStatement();
+  bool ProcedureCall();
+  bool ArgumentList();
   bool ProcedureDeclaration();
   bool ProcedureHeader();
   bool ParameterList();

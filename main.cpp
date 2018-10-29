@@ -1,5 +1,6 @@
 #include <iostream>
 #include "lexer/Lexer.h"
+#include "scope/ScopeManager.h"
 #include "parser/Parser.h"
 
 int main(int argc, char** argv) {
@@ -27,12 +28,13 @@ int main(int argc, char** argv) {
   }
 
   Lexer lexer(argv[1], verbose);
+  ScopeManager scopeManager;
 
   if (lexerOnly) {
     std::cout << "\033[1;34mStarting up in --lexer-only mode! \033[0m" << std::endl;
     while (!lexer.isDone()) lexer.nextToken();
   } else
-    Parser parser(lexer);
+    Parser parser(lexer, scopeManager);
 
   return 0;
 }
