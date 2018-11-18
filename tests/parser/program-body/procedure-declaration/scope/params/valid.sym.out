@@ -3,12 +3,12 @@ procedure       function1          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 
 +--------Symbol table--------+
-  integer            arg1          isGlobal:     -- paramType:  None
+  integer            arg1          isGlobal:     -- paramType:    In
 procedure       function2          isGlobal: global paramType:  None
 +--------End symbol table----+
 
 +--------Symbol table--------+
-   string           myArr[10 : 20] isGlobal:     -- paramType:  None
+   string           myArr[10 : 20] isGlobal:     -- paramType: InOut
 procedure       function3          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 

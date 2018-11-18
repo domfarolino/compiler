@@ -9,12 +9,12 @@ procedure       function1          isGlobal:     -- paramType:  None
 
 +--------Symbol table--------+
 procedure       function1          isGlobal:     -- paramType:  None
-     char            arg5          isGlobal:     -- paramType:  None
-    float            arg2          isGlobal:     -- paramType:  None
-     bool            arg3          isGlobal:     -- paramType:  None
+     char            arg5          isGlobal:     -- paramType: InOut
+    float            arg2          isGlobal:     -- paramType:    In
+     bool            arg3          isGlobal:     -- paramType:    In
 procedure        someProc          isGlobal:     -- paramType:  None
-  integer            arg1          isGlobal:     -- paramType:  None
-   string            arg4          isGlobal:     -- paramType:  None
+  integer            arg1          isGlobal:     -- paramType:    In
+   string            arg4          isGlobal:     -- paramType:   Out
 +--------End symbol table----+
 
 +--------Symbol table--------+

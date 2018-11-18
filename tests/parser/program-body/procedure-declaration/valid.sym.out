@@ -1,14 +1,14 @@
 +--------Symbol table--------+
-     char            arg5          isGlobal:     -- paramType:  None
-   string            arg4          isGlobal:     -- paramType:  None
-    float            arg2          isGlobal:     -- paramType:  None
-     bool            arg3          isGlobal:     -- paramType:  None
-  integer            arg1          isGlobal:     -- paramType:  None
+     char            arg5          isGlobal:     -- paramType: InOut
+   string            arg4          isGlobal:     -- paramType:   Out
+    float            arg2          isGlobal:     -- paramType:    In
+     bool            arg3          isGlobal:     -- paramType:    In
+  integer            arg1          isGlobal:     -- paramType:    In
 procedure       function1          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 
 +--------Symbol table--------+
-   string ARR_DOM_AT_CHROMIUM [4 : 18] isGlobal:     -- paramType:  None
+   string ARR_DOM_AT_CHROMIUM [4 : 18] isGlobal:     -- paramType:   Out
 procedure       function2          isGlobal: global paramType:  None
 +--------End symbol table----+
 

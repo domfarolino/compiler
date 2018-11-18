@@ -986,6 +986,7 @@ bool Parser::Parameter(std::vector<std::pair<std::string, SymbolRecord>>& parame
   if (!VariableDeclaration(identifier, symbolRecord))
     return false;
 
+  std::string paramTypeString = token_.lexeme;
   if (!CheckTokenType(TokenType::TIn) &&
       !CheckTokenType(TokenType::TOut) &&
       !CheckTokenType(TokenType::TInOut)) {
@@ -993,7 +994,7 @@ bool Parser::Parameter(std::vector<std::pair<std::string, SymbolRecord>>& parame
     return false;
   }
 
-  // TODO(domfarolino): Set parameter's symbol record's type accordingly.
+  symbolRecord.paramType = SymbolRecord::ParameterTypeStringToParameterType(paramTypeString);
   parameters.push_back(std::make_pair(identifier, symbolRecord));
   return true;
 }
