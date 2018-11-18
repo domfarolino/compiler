@@ -1,9 +1,10 @@
 program dominic is
 
   integer farolino;
+  integer test;
 
 begin
 
-  farolino := dominic[] + 4;
+  farolino[test] := 10;
 
 end program.

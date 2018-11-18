@@ -1,0 +1,8 @@
+program dominic is
+  procedure fn(integer arg1 in)
+  begin
+  end procedure;
+
+begin
+  fn((missingVariable));
+end program.

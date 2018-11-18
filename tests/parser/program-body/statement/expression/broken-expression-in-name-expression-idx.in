@@ -1,0 +1,10 @@
+program dominic is
+
+  integer dom;
+  integer farolino [0: 10];
+
+begin
+
+  farolino[0] := (farolino[4 +]);
+
+end program.

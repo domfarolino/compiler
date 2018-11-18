@@ -185,6 +185,9 @@ bool Parser::ProgramBody() {
 
 // <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
 bool Parser::Identifier() {
+  // TODO(domfarolino): Can we modify this so that even if there is a valid
+  // identifier that does not exist in an accessible symbol table, we return
+  // false? Should experiment with this for code health.
   return CheckTokenType(TokenType::TIdentifier);
 }
 
@@ -210,13 +213,25 @@ bool Parser::Char() {
 // <name> ::= <identifier> [ [ <expression> ] ]
 bool Parser::Name() {
   // <name> is not required (see <factor>).
-  if (!Identifier())
+  std::string identifier;
+  if (!Identifier(identifier))
     return false;
+
+  if (!scopeManager_.lookup(identifier)) {
+    QueueSymbolError("Symbol '" + identifier + "' not found");
+    return false;
+  }
 
   // <identifier>
   if (CheckTokenType(TokenType::TLeftBracket)) {
+    SymbolRecord* symbolRecord = scopeManager_.getSymbol(identifier);
+    if (!symbolRecord->isArray) {
+      QueueSymbolError("Cannot index into non-array name '" + identifier + "'");
+      return false;
+    }
 
     int errorQueueSizeSnapshot = errorQueue_.size();
+
     // <identifier> [
     if (!Expression()) {
       if (errorQueueSizeSnapshot == errorQueue_.size())
@@ -226,7 +241,8 @@ bool Parser::Name() {
 
     // <identifier> [ <expression>
     if (!CheckTokenType(TokenType::TRightBracket)) {
-      QueueExpectedTokenError("Expected ']' after expression in name");
+      if (errorQueueSizeSnapshot == errorQueue_.size())
+        QueueExpectedTokenError("Expected ']' after expression in name");
       return false;
     }
   }
@@ -347,15 +363,22 @@ bool Parser::Destination(std::string& identifier, SymbolRecord& symbolRecord, bo
     return false;
   }
 
+  SymbolRecord* destinationRecord = scopeManager_.getSymbol(identifier);
+
   // Procedures cannot be destinations. If the author was trying to assign or
   // index into a procedure, then ProcedureCall will catch that.
-  if (scopeManager_.getSymbol(identifier)->type == SymbolType::Procedure)
+  if (destinationRecord->type == SymbolType::Procedure)
     return false;
 
   // <identifier>
   if (CheckTokenType(TokenType::TLeftBracket)) {
+    if (!destinationRecord->isArray) {
+      QueueSymbolError("Cannot index into non-array destination '" + identifier  + "'");
+      return false;
+    }
 
     int errorQueueSizeSnapshot = errorQueue_.size();
+
     // <identifier> [
     if (!Expression()) {
       if (errorQueueSizeSnapshot == errorQueue_.size())
@@ -544,9 +567,14 @@ bool Parser::Factor() {
   if (CheckTokenType(TokenType::TMinus))
     minus = true;
 
+  int errorQueueSizeSnapshot = errorQueue_.size();
+
+  // Name is not required, but if it queued an error, we shouldn't continue.
   if (Name()) {
     // Do some processing here.
     return true;
+  } else if (errorQueue_.size() > errorQueueSizeSnapshot) {
+    return false;
   }
 
   std::string number;
@@ -562,7 +590,6 @@ bool Parser::Factor() {
 
   if (CheckTokenType(TokenType::TLeftParen)) {
     // (
-    int errorQueueSizeSnapshot = errorQueue_.size();
     if (!Expression()) {
       if (errorQueueSizeSnapshot == errorQueue_.size())
         QueueExpectedTokenError("Expected expression after '(' in factor");
@@ -571,7 +598,8 @@ bool Parser::Factor() {
 
     // ( <expression>
     if (!CheckTokenType(TokenType::TRightParen)) {
-      QueueExpectedTokenError("Expected ')' after expression in factor");
+      if (errorQueueSizeSnapshot == errorQueue_.size())
+        QueueExpectedTokenError("Expected ')' after expression in factor");
       return false;
     }
 
@@ -750,12 +778,22 @@ bool Parser::IfStatement() {
 
 // <procedure_call> ::= <identifier> ( [<argument_list>] )
 bool Parser::ProcedureCall(std::string& identifier) {
-  // ProcedureCall is not required, so don't queue error if first token is not
-  // found.
   // We are given a valid identifier. If a valid identifier could not be found
   // then Statement will know this, and report it without calling us.
   //if (!Identifier())
     //return false;
+
+  // Assert: scopeManager_.getSymbol(identifier)->type == SymbolType::Procedure.
+  // Assert: THIS IS NOT A DRILL. This is a real procedure call since we know
+  // the identifier is valid. This means in order to properly invoke a
+  // procedure, we have check that:
+  //   1.) The identifier matches an accessible procedure identifier ✅
+  //     - This is already tested by AssignmentStatement's Destination call.
+  //   2.) Any names used as arguments are valid symbols ✅
+  //   3.) The argument list length matches the stored parameter list length ✅
+  //   4.) Each argument type matches the expected type ❌
+  // TODO(domfarolino): If anything is wrong with the above conditions, errors
+  // must be displayed in the above order. This needs tested.
 
   // <identifier>
   if (!CheckTokenType(TokenType::TLeftParen)) {
@@ -768,9 +806,25 @@ bool Parser::ProcedureCall(std::string& identifier) {
   // ArgumentList() returned false only because it didn't exist, we can't let
   // that make us return false here, since the rest of ProcedureCall existed
   // just fine. We only want to propagate errors.
+  std::vector<std::pair<std::string, SymbolRecord>> argumentVec;
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!ArgumentList() && errorQueue_.size() > errorQueueSizeSnapshot)
+  if (!ArgumentList(argumentVec) && errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
+
+  // Conditions (1) and (2) from above are met; checking (3), length, now.
+  SymbolRecord* procedureSymbol = scopeManager_.getSymbol(identifier);
+
+  // Assert: |procedureSymbol| is non-null.
+  int argsLength = argumentVec.size();
+  int expectedArgsLength = procedureSymbol->params.size();
+
+  if (argsLength != expectedArgsLength) {
+    QueueSymbolError("Argument length mismatch: Procedure '" + identifier +
+                     "' expected " + std::to_string(expectedArgsLength) +
+                     " args, but was given " + std::to_string(argsLength) +
+                     " args");
+    return false;
+  }
 
   // <identifier> (...
   if (!CheckTokenType(TokenType::TRightParen)) {
@@ -783,12 +837,16 @@ bool Parser::ProcedureCall(std::string& identifier) {
 }
 
 // <argument_list> ::= <expression> , <argument_list> | <expression>
-bool Parser::ArgumentList() {
+bool Parser::ArgumentList(std::vector<std::pair<std::string, SymbolRecord>>& argumentVec) {
   // The language allows empty argument lists, so Expression() could have
   // returned false because it didn't exist, or because it failed to parse.
   // If it failed to parse, Expression will take care of queueing an error.
   if (!Expression())
     return false;
+
+  // TODO(domfarolino): Make this and the below instance actually push_back the
+  // expression information instead of just placeholder info for length.
+  argumentVec.push_back(std::make_pair("", SymbolRecord()));
 
   int errorQueueSizeSnapshot = errorQueue_.size();
   while (CheckTokenType(TokenType::TComma)) {
@@ -797,6 +855,8 @@ bool Parser::ArgumentList() {
         QueueError("Expected argument after ',' in argument list");
       return false;
     }
+
+    argumentVec.push_back(std::make_pair("", SymbolRecord()));
   }
 
   return true;

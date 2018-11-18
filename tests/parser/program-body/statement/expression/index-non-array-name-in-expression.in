@@ -1,0 +1,11 @@
+program dominic is
+
+  integer a;
+  integer b;
+
+begin
+
+  b := 10;
+  a := b[10];
+
+end program.

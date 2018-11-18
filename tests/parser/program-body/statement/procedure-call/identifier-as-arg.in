@@ -1,0 +1,11 @@
+program dominic is
+
+  integer actualVariable;
+
+  procedure fn(integer arg1 in)
+  begin
+  end procedure;
+
+begin
+  fn(actualVariable);
+end program.

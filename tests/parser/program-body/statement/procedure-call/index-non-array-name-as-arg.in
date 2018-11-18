@@ -1,0 +1,12 @@
+program dominic is
+
+  integer a;
+  string b;
+
+  procedure fn(integer arg1 in, string arg2 in)
+  begin
+  end procedure;
+
+begin
+  fn(a[10], b);
+end program.
