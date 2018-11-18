@@ -1,0 +1,9 @@
+program dominic is
+
+  bool dominic;
+
+begin
+
+  dominic := 4 || (4 ++ (5 /* 4))
+
+end program.

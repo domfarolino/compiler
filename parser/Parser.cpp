@@ -34,7 +34,10 @@
  * because it did not exist. This seems like less checks, but I could be wrong.
  */
 
-Parser::Parser(Lexer& inLexer, ScopeManager &inScopes): lexer_(inLexer), scopeManager_(inScopes) {
+Parser::Parser(Lexer& inLexer, ScopeManager &inScopes, bool inSymbolInsight):
+                                              lexer_(inLexer),
+                                              scopeManager_(inScopes),
+                                              symbolInsight_(inSymbolInsight) {
   token_ = lexer_.nextToken();
 
   // Start parsing the program from the <program> production!
@@ -52,7 +55,6 @@ bool Parser::CheckTokenType(TokenType expectedTokenType) {
   if (lexer_.isDone()) return false;
 
   // TODO(domfarolino): Handle invalid tokens, EOF, etc.
-  // ...
 
   if (token_.type == expectedTokenType) {
     token_ = lexer_.nextToken();
@@ -69,6 +71,12 @@ void Parser::QueueError(std::string inErrorString) {
 
 void Parser::QueueExpectedTokenError(std::string inErrorString) {
   errorQueue_.push("Line " + std::to_string(lexer_.lineNumber) + ": " + inErrorString + ", but got: '" + token_.lexeme + "'");
+}
+
+// Queues a regular error, but stops the code generator from generating code.
+void Parser::QueueSymbolError(std::string inErrorString) {
+  // TODO(domfarolino): Tell the code generator to stop generating code.
+  QueueError(inErrorString);
 }
 
 void Parser::FlushErrors() {
@@ -96,6 +104,8 @@ void Parser::Program() {
     QueueError("Error parsing program body");
     return;
   }
+
+  if (symbolInsight_) scopeManager_.printTopScope();
 
   if (!CheckTokenType(TokenType::TPeriod))
     QueueError("Missing period ('.') at the end of program");
@@ -175,10 +185,15 @@ bool Parser::ProgramBody() {
 
 // <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
 bool Parser::Identifier() {
-  // TODO(domfarolino): We probably want to return the token here too later.
+  return CheckTokenType(TokenType::TIdentifier);
+}
+
+// <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
+bool Parser::Identifier(std::string& id) {
   // TODO(domfarolino): Maybe if the token was not an identifier, we can check
   // to see if it is a reserved word and throw a more specific error, like "can
   // not use reserved word as identifier" or something.
+  id = token_.lexeme;
   return CheckTokenType(TokenType::TIdentifier);
 }
 
@@ -193,8 +208,6 @@ bool Parser::Char() {
 }
 
 // <name> ::= <identifier> [ [ <expression> ] ]
-// This is identical to Destination(). For now I'm keeping the duplication, in
-// case one changes from the other significantly during code-gen perhaps.
 bool Parser::Name() {
   // <name> is not required (see <factor>).
   if (!Identifier())
@@ -203,9 +216,11 @@ bool Parser::Name() {
   // <identifier>
   if (CheckTokenType(TokenType::TLeftBracket)) {
 
+    int errorQueueSizeSnapshot = errorQueue_.size();
     // <identifier> [
     if (!Expression()) {
-      QueueExpectedTokenError("Expected expression after '[' in name");
+      if (errorQueueSizeSnapshot == errorQueue_.size())
+        QueueExpectedTokenError("Expected expression after '[' in name");
       return false;
     }
 
@@ -222,16 +237,28 @@ bool Parser::Name() {
 
 // <declaration> ::= [ global ] <procedure_declaration> | [ global ] <variable_declaration>
 bool Parser::Declaration() {
+  std::string identifier;
+  SymbolRecord symbolRecord;
+
   bool global = false;
   if (CheckTokenType(TokenType::TGlobal))
     global = true;
 
+  symbolRecord.isGlobal = global;
+
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (ProcedureDeclaration()) {
-    // TODO(domfarolino): Symbol management for procedure declaration.
+  if (ProcedureDeclaration(identifier, symbolRecord))
     return true;
-  } else if (errorQueue_.size() == errorQueueSizeSnapshot && VariableDeclaration()) {
-    // TODO(domfarolino): Symbol management for variable declaration.
+  else if (errorQueue_.size() == errorQueueSizeSnapshot &&
+           VariableDeclaration(identifier, symbolRecord)) {
+
+    // The caller of VariableDeclaration is responsible for inserting its
+    // symbol into the current scope, hence why we have this conditional.
+    if (!scopeManager_.insert(identifier, symbolRecord)) {
+      QueueSymbolError("Symbol '" + identifier + "' already exists, cannot redeclare");
+      return false;
+    }
+
     return true;
   }
 
@@ -260,23 +287,32 @@ bool Parser::Statement() {
   else if (errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
 
-  if (AssignmentStatement()) return true;
+  std::string identifier;
+  bool validIdentifier = true;
+  if (AssignmentStatement(identifier, validIdentifier)) return true;
   else if (errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
 
-  if (ProcedureCall()) return true;
-  else if (errorQueue_.size() > errorQueueSizeSnapshot)
-    return false;
+  // Assert: There were no parsing errors specific to AssignmentStatement. In
+  // other words, AssignmentStatement failed without queueing an error, and this
+  // only happens when:
+  //  1.) The next token was not a valid identifier, therefore
+  //      AssignmentStatment and ProcedureCall will both return false with no
+  //      queued error (because these productions are not mandatory)
+  //  2.) The next token was a valid identifier, but the symbol associated with
+  //      it was type procedure, and therefore ProcedureCall must handle it
+  if (validIdentifier && ProcedureCall(identifier)) return true;
 
   return false;
 }
 
 // <assignment_statement> ::= <destination> := <expression>
-bool Parser::AssignmentStatement() {
+bool Parser::AssignmentStatement(std::string& identifier, bool& validIdentifier) {
+  SymbolRecord symbolRecord;
   // <assignment_statement> is not required, as up the chain it is part of a
   // (<statement>;)*, so if we fail to find the first token we cannot queue
   // an error quite yet.
-  if (!Destination())
+  if (!Destination(identifier, symbolRecord, validIdentifier))
     return false;
 
   // <destination>
@@ -299,17 +335,31 @@ bool Parser::AssignmentStatement() {
 }
 
 // <destination> ::= <identifier> [ [ <expression> ] ]
-bool Parser::Destination() {
+bool Parser::Destination(std::string& identifier, SymbolRecord& symbolRecord, bool& validIdentifier) {
   // <destination> is not required (see <assignment_statement>).
-  if (!Identifier())
+  if (!Identifier(identifier)) {
+    validIdentifier = false;
+    return false;
+  }
+
+  if (!scopeManager_.lookup(identifier)) {
+    QueueSymbolError("Symbol '" + identifier + "' not found");
+    return false;
+  }
+
+  // Procedures cannot be destinations. If the author was trying to assign or
+  // index into a procedure, then ProcedureCall will catch that.
+  if (scopeManager_.getSymbol(identifier)->type == SymbolType::Procedure)
     return false;
 
   // <identifier>
   if (CheckTokenType(TokenType::TLeftBracket)) {
 
+    int errorQueueSizeSnapshot = errorQueue_.size();
     // <identifier> [
     if (!Expression()) {
-      QueueExpectedTokenError("Expected expression after '[' in assignment statement");
+      if (errorQueueSizeSnapshot == errorQueue_.size())
+        QueueExpectedTokenError("Expected expression after '[' in assignment statement");
       return false;
     }
 
@@ -499,7 +549,8 @@ bool Parser::Factor() {
     return true;
   }
 
-  if (Number()) {
+  std::string number;
+  if (Number(number)) {
     // Do some processing here.
     return true;
   }
@@ -511,8 +562,10 @@ bool Parser::Factor() {
 
   if (CheckTokenType(TokenType::TLeftParen)) {
     // (
+    int errorQueueSizeSnapshot = errorQueue_.size();
     if (!Expression()) {
-      QueueExpectedTokenError("Expected after expression after '(' in factor");
+      if (errorQueueSizeSnapshot == errorQueue_.size())
+        QueueExpectedTokenError("Expected expression after '(' in factor");
       return false;
     }
 
@@ -551,8 +604,11 @@ bool Parser::LoopStatement() {
 
   // for (
   int errorQueueSizeSnapshot = errorQueue_.size();
+  std::string identifier;
+  bool validIdentifier = true;
   // Only queue an error if AssignmentStatement did not (sometimes it does!).
-  if (!AssignmentStatement() && errorQueueSizeSnapshot == errorQueue_.size()) {
+  if (!AssignmentStatement(identifier, validIdentifier) &&
+      errorQueueSizeSnapshot == errorQueue_.size()) {
     QueueExpectedTokenError("Expected assignment statement after '(' in for loop");
     return false;
   }
@@ -693,11 +749,13 @@ bool Parser::IfStatement() {
 }
 
 // <procedure_call> ::= <identifier> ( [<argument_list>] )
-bool Parser::ProcedureCall() {
+bool Parser::ProcedureCall(std::string& identifier) {
   // ProcedureCall is not required, so don't queue error if first token is not
   // found.
-  if (!Identifier())
-    return false;
+  // We are given a valid identifier. If a valid identifier could not be found
+  // then Statement will know this, and report it without calling us.
+  //if (!Identifier())
+    //return false;
 
   // <identifier>
   if (!CheckTokenType(TokenType::TLeftParen)) {
@@ -714,6 +772,13 @@ bool Parser::ProcedureCall() {
   if (!ArgumentList() && errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
 
+  // <identifier> (...
+  if (!CheckTokenType(TokenType::TRightParen)) {
+    QueueExpectedTokenError("Expected ')' after argument list");
+    return false;
+  }
+
+  // <identifier> (...)
   return true;
 }
 
@@ -727,8 +792,9 @@ bool Parser::ArgumentList() {
 
   int errorQueueSizeSnapshot = errorQueue_.size();
   while (CheckTokenType(TokenType::TComma)) {
-    if (!Expression() && errorQueueSizeSnapshot == errorQueue_.size()) {
-      QueueError("Expected parameter after ',' in parameter list");
+    if (!Expression()) {
+      if (errorQueueSizeSnapshot == errorQueue_.size())
+        QueueError("Expected argument after ',' in argument list");
       return false;
     }
   }
@@ -737,22 +803,58 @@ bool Parser::ArgumentList() {
 }
 
 // <procedure_declaration> ::= <procedure_header> <procedure_body>
-bool Parser::ProcedureDeclaration() {
-  scopeManager_.enterScope();
+bool Parser::ProcedureDeclaration(std::string& identifier, SymbolRecord& symbolRecord) {
+  // TODO(domfarolino): Consider making this function take in a global flag
+  // instead of a symbol record, so we can create and add the symbol record here.
+
+  symbolRecord.type = SymbolType::Procedure;
+  SymbolTable& outerScope = scopeManager_.getCurrentScopeRef();
+  std::vector<std::pair<std::string, SymbolRecord>> parameters;
   // This is not a valid ProcedureDeclaration, if the ProcedureHeader is either
   // missing or invalid.
-  if (!ProcedureHeader())
+  if (!ProcedureHeader(identifier, parameters))
     return false;
+
+  // Create the final procedure symbol record.
+  symbolRecord.params = parameters;
+
+  // Enter procedure scope.
+  scopeManager_.enterScope();
+
+  // Add the procedure's symbol to its own symbol table.
+  if (!scopeManager_.insertAllowShadow(identifier, symbolRecord))
+    throw std::logic_error("Unreachable: Cannot insert procedure into its own local scope");
+
+  // Add each parameter's symbol to the current procedure's symbol table.
+  for (auto parameterInfo: parameters) {
+    // parameterInfo.first = identifier.
+    // parameterInfo.second = symbol record.
+
+    if (!scopeManager_.insertAllowShadow(parameterInfo.first, parameterInfo.second)) {
+      QueueSymbolError("Cannot add parameter '" + parameterInfo.first +
+                       "' to the current scope, symbol name already exists");
+      return false;
+    }
+  }
+
+  // Insert the symbol into the "outer" scope that it appears within.
+  if (!scopeManager_.insertAtScope(identifier, symbolRecord, outerScope)) {
+    QueueSymbolError("Symbol '" + identifier + "' already exists, cannot redeclare");
+    return false;
+  }
 
   // <procedure_header>
   // Same goes for ProcedureBody...
   bool parsedBody = ProcedureBody();
+  
+  if (symbolInsight_) scopeManager_.printTopScope();
+
   scopeManager_.leaveScope();
   return parsedBody;
 }
 
 // <procedure_header> :: = procedure <identifier> ( [<parameter_list>] )
-bool Parser::ProcedureHeader() {
+bool Parser::ProcedureHeader(std::string& identifier, std::vector<std::pair<std::string, SymbolRecord>>& parameters) {
   // A <procedure_header> doesn't always have to exist (as up the chain it is
   // eventually a (<declaration>;)*, which can appear no times), so if the first
   // terminal of a production like this, we have to let our caller decide
@@ -762,49 +864,49 @@ bool Parser::ProcedureHeader() {
   if (!CheckTokenType(TokenType::TProcedure))
     return false;
 
-  // "procedure"
-  if (!Identifier()) {
+  // procedure
+  if (!Identifier(identifier)) {
     QueueExpectedTokenError("Expected identifier in procedure header");
     return false;
   }
 
-  // "procedure <identifier>"
+  // procedure <identifier>
   if (!CheckTokenType(TokenType::TLeftParen)) {
     QueueExpectedTokenError("Expected '(' before parameter list in procedure header");
     return false;
   }
 
-  // "procedure <identifier> ("
+  // procedure <identifier> (
   // A ParameterList is optional, so if ParameterList() returned false only
   // because it didn't exist, we can't let that make us return false here, since
   // the rest of ProcedureHeader existed just fine. We only want to propagate
   // errors.
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!ParameterList() && errorQueue_.size() > errorQueueSizeSnapshot)
+  if (!ParameterList(parameters) && errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
 
-  // "procedure <identifier>(..."
+  // procedure <identifier> (..."
   if (!CheckTokenType(TokenType::TRightParen)) {
     QueueExpectedTokenError("Expected ')' after parameter list in procedure header");
     return false;
   }
 
-  // "procedure <identifier>(...)
+  // procedure <identifier> (...)
   return true;
 }
 
 // <parameter_list> ::= <parameter> , <parameter_list> | <parameter>
-bool Parser::ParameterList() {
+bool Parser::ParameterList(std::vector<std::pair<std::string, SymbolRecord>>& parameters) {
   // The language allows empty parameter lists, so Parameter() could have
   // returned false because it didn't exist, or because it failed to parse.
   // Either way, we return false, and our caller will detect whether there
   // was an error or not. If Parameter() was true, we only return true if
   // there are no trailing commas in the list.
-  if (!Parameter())
+  if (!Parameter(parameters))
     return false;
 
   while (CheckTokenType(TokenType::TComma)) {
-    if (!Parameter()) {
+    if (!Parameter(parameters)) {
       QueueError("Expected parameter after ',' in parameter list");
       return false;
     }
@@ -814,12 +916,14 @@ bool Parser::ParameterList() {
 }
 
 // <parameter> ::= <variable_declaration> (in | out | inout)
-bool Parser::Parameter() {
+bool Parser::Parameter(std::vector<std::pair<std::string, SymbolRecord>>& parameters) {
   // If VD returns false, that could be because it didn't find a VD, or because
   // a VD failed to parse. Parameters aren't mandatory, so we only care about
   // the latter case. Our caller will determine whether the VD had an error
   // parsing or not. In this frame, we only care about completion.
-  if (!VariableDeclaration())
+  std::string identifier;
+  SymbolRecord symbolRecord;
+  if (!VariableDeclaration(identifier, symbolRecord))
     return false;
 
   if (!CheckTokenType(TokenType::TIn) &&
@@ -829,6 +933,8 @@ bool Parser::Parameter() {
     return false;
   }
 
+  // TODO(domfarolino): Set parameter's symbol record's type accordingly.
+  parameters.push_back(std::make_pair(identifier, symbolRecord));
   return true;
 }
 
@@ -842,16 +948,20 @@ bool Parser::ProcedureBody() {
     }
   }
 
-  // Declaration() isn't required, so there are two reasons it may return false:
+  // Declaration() isn't required, so there are two reasons it may return false.
   // For these reasons, see ProgramBody() above.
   if (errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
 
+  // Assert: We ran out of Declarations, so really if we see anything that is
+  // not `begin`, we were expecting `begin` or more declarations.
+  // (<declaration>;)*
   if (!CheckTokenType(TokenType::TBegin)) {
-    QueueExpectedTokenError("Expected 'begin' in procedure body");
+    QueueExpectedTokenError("Expected 'begin' or declaration in procedure body");
     return false;
   }
 
+  // (<declaration>;)* begin
   while (Statement()) {
     if (!CheckTokenType(TokenType::TSemicolon)) {
       QueueExpectedTokenError("Expected ';' after statement");
@@ -859,39 +969,45 @@ bool Parser::ProcedureBody() {
     }
   }
 
-  // Same error checking as above.
+  // Same error checking as above (like w/ Declaration).
   if (errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
 
+  // (<declaration>;)* begin (<statement>;)
   if (!CheckTokenType(TokenType::TEnd) ||
       !CheckTokenType(TokenType::TProcedure)) {
     QueueExpectedTokenError("Expected 'end program' after procedure body");
     return false;
   }
 
+  // (<declaration>;)* begin (<statement>;)* end procedure
   return true;
 }
 
 // <variable_declaration> ::= <type_mark> <identifier> [ [ <lower_bound> “:” <upper_bound> ] ]
-bool Parser::VariableDeclaration() {
+bool Parser::VariableDeclaration(std::string& identifier, SymbolRecord& symbolRecord) {
   // Can't report error if TypeMark was not found, because VariableDeclaration
   // isn't always required. Caller will decide whether a VD that doesn't exist
   // is an error or not, given the context.
-  if (!TypeMark())
+  std::string typeMark;
+  if (!TypeMark(typeMark))
     return false;
 
+  symbolRecord.type = SymbolRecord::TypeMarkToSymbolType(typeMark);
+
   // <type_mark>
-  if (!Identifier()) {
+  if (!Identifier(identifier)) {
     QueueExpectedTokenError("Expected identifier in variable declaration");
     return false;
   }
 
   // <type_mark> <identifier>
   if (CheckTokenType(TokenType::TLeftBracket)) {
+    symbolRecord.isArray = true;
 
     // Declaring an array, lower and upper bound are required.
     // <type_mark> <identifier> [
-    if (!LowerOrUpperBound()) {
+    if (!LowerOrUpperBound(symbolRecord.lowerBound)) {
       QueueExpectedTokenError("Expected number for array lower bound");
       return false;
     }
@@ -903,7 +1019,7 @@ bool Parser::VariableDeclaration() {
     }
 
     // <type_mark> <identifier> [ <number> :
-    if (!LowerOrUpperBound()) {
+    if (!LowerOrUpperBound(symbolRecord.upperBound)) {
       QueueExpectedTokenError("Expected number for array upper bound");
       return false;
     }
@@ -921,7 +1037,8 @@ bool Parser::VariableDeclaration() {
 // <type_mark> ::= integer | float | string | bool | char
 // Not necessary to find one in all usages, so we leave error reporting to the
 // caller.
-bool Parser::TypeMark() {
+bool Parser::TypeMark(std::string& typeMark) {
+  typeMark = token_.lexeme;
   return CheckTokenType(TokenType::TIntegerType) ||
          CheckTokenType(TokenType::TFloatType)   ||
          CheckTokenType(TokenType::TStringType)  ||
@@ -931,19 +1048,18 @@ bool Parser::TypeMark() {
 
 // <lower_bound> ::= [-] <number>
 // <upper_bound> ::= [-] <number>
-bool Parser::LowerOrUpperBound() {
-  bool isNegative = false;
-
+bool Parser::LowerOrUpperBound(std::string& number) {
   if (CheckTokenType(TokenType::TMinus))
-    isNegative = true;
+    number += '-';
 
-  return Number();
+  return Number(number);
 }
 
 // <number> ::= [0-9][0-9_]*[.[0-9_]*]
 // Not necessary to find one in all usages, so we leave error reporting to the
 // caller.
-bool Parser::Number() {
+bool Parser::Number(std::string& number) {
+  number += token_.lexeme;
   return CheckTokenType(TokenType::TInteger) ||
          CheckTokenType(TokenType::TFloat);
 }

@@ -1,0 +1,11 @@
+program dominic is
+  integer dominic;
+
+  procedure function()
+    integer dominic;
+  begin
+    dominic := 1000;
+  end procedure;
+
+begin
+end program.

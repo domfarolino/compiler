@@ -1,0 +1,9 @@
+program dominic is
+
+  integer dominic [10 : 20];
+
+begin
+
+  dominic[true] := (0 + 18) / 2 + (-);
+
+end program.

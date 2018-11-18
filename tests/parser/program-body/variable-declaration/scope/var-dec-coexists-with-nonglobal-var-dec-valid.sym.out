@@ -1,0 +1,12 @@
++--------Symbol table--------+
+  integer         dominic          isGlobal:     -- paramType:  None
+procedure        function          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
++--------Symbol table--------+
+procedure        function          isGlobal:     -- paramType:  None
+  integer         dominic          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
+Program compiled successfully
+[1;31m[0m

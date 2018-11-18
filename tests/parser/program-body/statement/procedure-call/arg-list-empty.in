@@ -1,0 +1,8 @@
+program dominic is
+  procedure fn()
+  begin
+  end procedure;
+
+begin
+  fn();
+end program.

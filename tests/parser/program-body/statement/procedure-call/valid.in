@@ -1,7 +1,6 @@
 program dominic is
   integer myInt;
   integer myFloat;
-  bool myBool;
   string myString;
   char myChar;
 
@@ -10,5 +9,5 @@ program dominic is
   end procedure;
 
 begin
-  fn(myInt, myFloat, myBool, myString, myChar);
+  fn(myInt, myFloat, true, myString, myChar);
 end program.

@@ -1,0 +1,9 @@
+program dominic_farolino is
+
+  float dominic;
+  float dominic_array [10:20];
+
+  string dominic[0:9];
+
+begin
+end program.

@@ -1,0 +1,9 @@
+program dominic is
+
+  integer dominic [10 : 20];
+
+begin
+
+  dominic[true] := dominic[0 + ()];
+
+end program.

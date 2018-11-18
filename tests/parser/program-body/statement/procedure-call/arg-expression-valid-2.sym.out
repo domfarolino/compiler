@@ -1,0 +1,16 @@
++--------Symbol table--------+
+     char            arg5          isGlobal:     -- paramType:  None
+   string            arg4          isGlobal:     -- paramType:  None
+    float            arg2          isGlobal:     -- paramType:  None
+     bool            arg3          isGlobal:     -- paramType:  None
+  integer            arg1          isGlobal:     -- paramType:  None
+procedure              fn          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
++--------Symbol table--------+
+procedure              fn          isGlobal:     -- paramType:  None
+  integer     domFarolino          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
+Program compiled successfully
+[1;31m[0m

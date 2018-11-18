@@ -1,0 +1,11 @@
+program dominic is
+  integer dominic;
+
+  procedure function1(integer arg1 in, float arg2 in, bool arg3 in, string arg4 out, char arg5 inout)
+    integer function1
+    nonExistantVariable := 10;
+  begin
+  end procedure;
+
+begin
+end program.

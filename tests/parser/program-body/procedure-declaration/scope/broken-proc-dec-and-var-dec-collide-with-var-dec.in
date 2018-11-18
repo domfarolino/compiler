@@ -1,0 +1,10 @@
+program dominic is
+  integer myVar;
+
+  procedure myVar(integer arg1 in, float arg2 in, bool arg3 in, string arg4 out, char arg5 inout)
+    integer myVar
+  begin
+  end procedure;
+
+begin
+end program.

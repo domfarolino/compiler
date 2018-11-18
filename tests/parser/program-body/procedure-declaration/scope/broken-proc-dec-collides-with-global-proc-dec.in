@@ -1,0 +1,17 @@
+program dominic is
+  global procedure function1()
+  begin
+  end procedure;
+
+  procedure someProc(integer arg1 in, float arg2 in, bool arg3 in, string arg4 out, char arg5 inout)
+
+    procedure function1()
+      integer innerStuff
+    begin
+    end procedure;
+
+  begin
+  end procedure;
+
+begin
+end program.

@@ -18,6 +18,7 @@
 class ScopeManager {
 private:
   std::stack<SymbolTable> scopeStack;
+  // TODO(domfarolino): Can we change this to a reference?
   SymbolTable* globalScope;
 
 public:
@@ -44,16 +45,55 @@ public:
     return false;
   }
 
+  bool lookupAtScope(const std::string& symbolName, SymbolTable& scope) {
+    SymbolRecord* globalRecord = globalScope->getSymbol(symbolName);
+    if (scope.lookup(symbolName)  || (globalRecord && globalRecord->isGlobal))
+      return true;
+
+    return false;
+  }
+
   bool insert(const std::string& symbolName, SymbolRecord symbolRecord) {
+    if (lookup(symbolName))
+      return false;
+
     return scopeStack.top().insert(symbolName, symbolRecord);
   }
 
+  bool insertAtScope(const std::string& symbolName, SymbolRecord symbolRecord, SymbolTable& scope) {
+    if (lookupAtScope(symbolName, scope))
+      return false;
+
+    return scope.insert(symbolName, symbolRecord);
+  }
+
+  // This allows symbols to shadow symbols from outer scope(s), but does not
+  // allow symbols within the same scope to shadow each other. At the time of
+  // writing, this is only used when inserting a procedure's symbol and its
+  // parameters into the local scope of said procedure.
+  bool insertAllowShadow(const std::string& symbolName, SymbolRecord symbolRecord) {
+    if (scopeStack.top().lookup(symbolName))
+      return false;
+
+    return scopeStack.top().insert(symbolName, symbolRecord);
+  }
+
+  // This returns a pointer only so that `nullptr` can act as a sentinel value
+  // representing unfound symbols.
   SymbolRecord* getSymbol(const std::string& symbolName) {
     if (scopeStack.top().lookup(symbolName))
       return scopeStack.top().getSymbol(symbolName);
 
     SymbolRecord* globalRecord = globalScope->getSymbol(symbolName);
     return (globalRecord && globalRecord->isGlobal) ? globalRecord : nullptr;
+  }
+
+  SymbolTable& getCurrentScopeRef() {
+    return scopeStack.top();
+  }
+
+  void printTopScope() {
+    scopeStack.top().printTable();
   }
 };
 

@@ -4,6 +4,6 @@ program dominic is
 
 begin
 
-  dominic := 4 || (4 ++ (5 /* 4))
+  dominic := (true & (false & (true || false)));
 
 end program.

@@ -1,0 +1,15 @@
++--------Symbol table--------+
+     char         domCHAR          isGlobal:     -- paramType:  None
+   string domstring_array[30 : 11] isGlobal:     -- paramType:  None
+     bool         dombool          isGlobal:     -- paramType:  None
+   string       domstring [0 : 11] isGlobal:     -- paramType:  None
+    float         dominic          isGlobal:     -- paramType:  None
+  integer    domint_array [0 : 40] isGlobal: global paramType:  None
+     char   domCHAR_array [1 : 13] isGlobal:     -- paramType:  None
+  integer          domint          isGlobal: global paramType:  None
+     bool   dombool_array  [0 : 0] isGlobal:     -- paramType:  None
+    float   dominic_array[10 : 20] isGlobal:     -- paramType:  None
++--------End symbol table----+
+
+Program compiled successfully
+[1;31m[0m

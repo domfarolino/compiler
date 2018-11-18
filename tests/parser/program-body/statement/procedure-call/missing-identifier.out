@@ -1,0 +1,3 @@
+[1;31mLine 12: Expected 'end program' after program body, but got: '('
+Line 12: Error parsing program body
+[0m

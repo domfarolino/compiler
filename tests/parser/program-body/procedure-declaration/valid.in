@@ -1,0 +1,15 @@
+program dominic is
+  integer dominic;
+
+  procedure function1(integer arg1 in, float arg2 in, bool arg3 in, string arg4 out, char arg5 inout)
+  begin
+  end procedure;
+
+  string dominic2 [10 : 22];
+
+  global procedure function2(string ARR_DOM_AT_CHROMIUM [4 : 18] out)
+  begin
+  end procedure;
+
+begin
+end program.

@@ -3,27 +3,31 @@
 
 #include <string>
 #include <queue>
+#include <utility>
 
 #include "../lib/Token.h"
 
 class Lexer;
 class ScopeManager;
+class SymbolRecord;
 
 class Parser {
 public:
-  Parser(Lexer&, ScopeManager&);
+  Parser(Lexer&, ScopeManager&, bool);
 
 private:
   // Members
   Lexer& lexer_;
   ScopeManager& scopeManager_;
   Token token_;
+  bool symbolInsight_;
   std::queue<std::string> errorQueue_;
 
   // Utility Methods
   bool CheckTokenType(TokenType);
   void QueueError(std::string);
   void QueueExpectedTokenError(std::string);
+  void QueueSymbolError(std::string);
   void FlushErrors();
 
   // Productions
@@ -31,13 +35,14 @@ private:
   bool ProgramHeader();
   bool ProgramBody();
   bool Identifier();
+  bool Identifier(std::string&);
   bool String();
   bool Char();
   bool Name();
   bool Declaration();
   bool Statement();
-  bool AssignmentStatement();
-  bool Destination();
+  bool AssignmentStatement(std::string&, bool&);
+  bool Destination(std::string&, SymbolRecord&, bool&);
   bool Expression();
   bool ExpressionPrime();
   bool ArithOp();
@@ -49,17 +54,17 @@ private:
   bool Factor();
   bool LoopStatement();
   bool IfStatement();
-  bool ProcedureCall();
+  bool ProcedureCall(std::string&);
   bool ArgumentList();
-  bool ProcedureDeclaration();
-  bool ProcedureHeader();
-  bool ParameterList();
-  bool Parameter();
+  bool ProcedureDeclaration(std::string&, SymbolRecord&);
+  bool ProcedureHeader(std::string&, std::vector<std::pair<std::string, SymbolRecord>>&);
+  bool ParameterList(std::vector<std::pair<std::string, SymbolRecord>>&);
+  bool Parameter(std::vector<std::pair<std::string, SymbolRecord>>&);
   bool ProcedureBody();
-  bool VariableDeclaration();
-  bool TypeMark();
-  bool LowerOrUpperBound();
-  bool Number();
+  bool VariableDeclaration(std::string&, SymbolRecord&);
+  bool TypeMark(std::string&);
+  bool LowerOrUpperBound(std::string&);
+  bool Number(std::string&);
 };
 
 #endif

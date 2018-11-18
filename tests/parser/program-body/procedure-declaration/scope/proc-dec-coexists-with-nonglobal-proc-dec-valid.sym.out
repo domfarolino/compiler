@@ -1,0 +1,26 @@
++--------Symbol table--------+
+procedure       function1          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
++--------Symbol table--------+
+  integer      innerStuff          isGlobal:     -- paramType:  None
+procedure       function1          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
++--------Symbol table--------+
+procedure       function1          isGlobal:     -- paramType:  None
+     char            arg5          isGlobal:     -- paramType:  None
+    float            arg2          isGlobal:     -- paramType:  None
+     bool            arg3          isGlobal:     -- paramType:  None
+procedure        someProc          isGlobal:     -- paramType:  None
+  integer            arg1          isGlobal:     -- paramType:  None
+   string            arg4          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
++--------Symbol table--------+
+procedure        someProc          isGlobal:     -- paramType:  None
+procedure       function1          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
+Program compiled successfully
+[1;31m[0m

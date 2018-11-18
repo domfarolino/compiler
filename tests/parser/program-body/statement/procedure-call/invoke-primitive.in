@@ -1,0 +1,6 @@
+program dominic is
+  string strArr[0: 10];
+
+begin
+  strArr();
+end program.

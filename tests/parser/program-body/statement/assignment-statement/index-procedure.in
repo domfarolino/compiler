@@ -1,0 +1,10 @@
+program dominic is
+
+  procedure farolino()
+  begin
+  end procedure;
+begin
+
+  farolino[10] := true;
+
+end program.

@@ -1,0 +1,8 @@
+program dominic is
+  procedure fn(integer arg1 in, float arg2 in, bool arg3 in, string arg4 out, char arg5 inout)
+  begin
+  end procedure;
+
+begin
+  fn(10, (11.11 * 12) + 13, (true & (false | (true || false))), "domfarolino", 'd');
+end program.

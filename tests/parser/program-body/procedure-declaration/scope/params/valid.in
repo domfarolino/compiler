@@ -1,0 +1,16 @@
+program dominic is
+
+  procedure function1()
+  begin
+  end procedure;
+
+  global procedure function2(integer arg1 in)
+  begin
+  end procedure;
+
+  procedure function3(string myArr [10: 20] inout)
+  begin
+  end procedure;
+
+begin
+end program.

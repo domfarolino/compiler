@@ -1,0 +1,7 @@
+program dominic is
+  procedure function1(integer function1 in)
+  begin
+  end procedure;
+
+begin
+end program.

@@ -1,0 +1,3 @@
+[1;31mLine 5: Expected ':=' after destination in assignment statement, but got: '('
+Line 5: Error parsing program body
+[0m
