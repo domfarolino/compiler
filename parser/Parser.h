@@ -38,7 +38,7 @@ private:
   bool Identifier(std::string&);
   bool String();
   bool Char();
-  bool Name();
+  bool Name(std::string&, SymbolRecord*&);
   bool Declaration();
   bool Statement();
   bool AssignmentStatement(std::string&, bool&);

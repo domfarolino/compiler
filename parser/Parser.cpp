@@ -196,7 +196,8 @@ bool Parser::Identifier(std::string& id) {
   // TODO(domfarolino): Maybe if the token was not an identifier, we can check
   // to see if it is a reserved word and throw a more specific error, like "can
   // not use reserved word as identifier" or something.
-  id = token_.lexeme;
+  id = token_.lexeme; // This must come before CheckTokenType, as CheckTokenType
+                      // advances the token stream by one token.
   return CheckTokenType(TokenType::TIdentifier);
 }
 
@@ -211,9 +212,13 @@ bool Parser::Char() {
 }
 
 // <name> ::= <identifier> [ [ <expression> ] ]
-bool Parser::Name() {
+// We can get away without consuming |identifier|, however for error messages in
+// ::Factor(), it is convenient to have the name of the symbol that may have
+// caused the error.
+bool Parser::Name(std::string& identifier, SymbolRecord*& symbolRecord) {
+  // Assert: symbolRecord == nullptr
+
   // <name> is not required (see <factor>).
-  std::string identifier;
   if (!Identifier(identifier))
     return false;
 
@@ -222,9 +227,11 @@ bool Parser::Name() {
     return false;
   }
 
+  // Assert: the symbolRecord exists; get it.
+  symbolRecord = scopeManager_.getSymbol(identifier);
+
   // <identifier>
   if (CheckTokenType(TokenType::TLeftBracket)) {
-    SymbolRecord* symbolRecord = scopeManager_.getSymbol(identifier);
     if (!symbolRecord->isArray) {
       QueueSymbolError("Cannot index into non-array name '" + identifier + "'");
       return false;
@@ -351,6 +358,8 @@ bool Parser::AssignmentStatement(std::string& identifier, bool& validIdentifier)
 }
 
 // <destination> ::= <identifier> [ [ <expression> ] ]
+// TODO(domfarolino): It seems that ::Destination() does not use its
+// symbolRecord; we can probably get rid of the argument.
 bool Parser::Destination(std::string& identifier, SymbolRecord& symbolRecord, bool& validIdentifier) {
   // <destination> is not required (see <assignment_statement>).
   if (!Identifier(identifier)) {
@@ -570,9 +579,22 @@ bool Parser::Factor() {
   int errorQueueSizeSnapshot = errorQueue_.size();
 
   // Name is not required, but if it queued an error, we shouldn't continue.
-  if (Name()) {
-    // TODO(domfarolino): Get token information from name, and if minus cannot
-    // be applied, queue an unexpected token error.
+
+  // We can get away without passing |identifier| in, however for error
+  // messages, it is convenient to have the name of the symbol that may have
+  // caused the error.
+  std::string identifier;
+  SymbolRecord* symbolRecord;
+  if (Name(identifier, symbolRecord)) {
+    // Assert: symbolRecord is non-{NULL/nullptr}.
+
+    // Minus (-) cannot be applied to non-{integer, float}s.
+    if (minus && (symbolRecord->type != SymbolType::Integer &&
+                  symbolRecord->type != SymbolType::Float)) {
+      QueueSymbolError("Minus (-) cannot be applied to symbol '" + identifier +
+                       "' which is not of type integer or float");
+      return false;
+    }
 
     // Do some processing here.
     return true;
@@ -584,11 +606,6 @@ bool Parser::Factor() {
   if (Number(number)) {
     // Do some processing here.
     return true;
-  }
-
-  if (minus) {
-    QueueExpectedTokenError("Unexpected '-' before factor that is not a number or name");
-    return false;
   }
 
   if (CheckTokenType(TokenType::TLeftParen)) {
@@ -608,8 +625,15 @@ bool Parser::Factor() {
 
     // ( <expression> )
     return true;
-  } else if (CheckTokenType(TokenType::TTrue) ||
-             CheckTokenType(TokenType::TFalse)) { // Boolean types.
+  }
+
+  if (minus) {
+    QueueExpectedTokenError("Unexpected '-' before factor that is not a number or name");
+    return false;
+  }
+
+  if (CheckTokenType(TokenType::TTrue) ||
+      CheckTokenType(TokenType::TFalse)) { // Boolean types.
     return true;
   } else if (String()) { // String type.
     return true;

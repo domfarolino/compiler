@@ -1,0 +1,11 @@
+program dominic is
+
+  integer result;
+  integer tmp;
+
+begin
+
+  tmp := 14;
+  result := -tmp;
+
+end program.

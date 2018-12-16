@@ -1,0 +1,10 @@
+program dominic is
+
+  integer result;
+  bool boolVar;
+
+begin
+
+  result := -boolVar;
+
+end program.
