@@ -571,6 +571,9 @@ bool Parser::Factor() {
 
   // Name is not required, but if it queued an error, we shouldn't continue.
   if (Name()) {
+    // TODO(domfarolino): Get token information from name, and if minus cannot
+    // be applied, queue an unexpected token error.
+
     // Do some processing here.
     return true;
   } else if (errorQueue_.size() > errorQueueSizeSnapshot) {

@@ -71,7 +71,8 @@ public:
     else if (typeMark == "char")
       return SymbolType::Char;
     else
-      throw std::logic_error("SymbolRecord::TypeMarkToSymbolType was given an invalid type mark: " + typeMark);
+      throw std::logic_error("SymbolRecord::TypeMarkToSymbolType was given an invalid type mark: " +
+                             typeMark);
   }
 
   static ParameterType ParameterTypeStringToParameterType(const std::string& parameterTypeString) {
@@ -82,7 +83,8 @@ public:
     else if (parameterTypeString == "inout")
       return ParameterType::InOut;
     else
-      throw std::logic_error("SymbolRecord::ParameterTypeStringToParameterType was given an invalid parameter type string: " + parameterTypeString);
+      throw std::logic_error("SymbolRecord::ParameterTypeStringToParameterType was given an invalid parameter type string: " +
+                             parameterTypeString);
   }
 };
 
