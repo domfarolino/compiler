@@ -820,7 +820,8 @@ bool Parser::ProcedureCall(std::string& identifier) {
   //   3.) The argument list length matches the stored parameter list length ✅
   //   4.) Each argument type matches the expected type ❌
   // TODO(domfarolino): If anything is wrong with the above conditions, errors
-  // must be displayed in the above order. This needs tested.
+  // must be displayed in the above order. This needs tested
+  // (https://github.com/domfarolino/compiler/issues/24).
 
   // <identifier>
   if (!CheckTokenType(TokenType::TLeftParen)) {
