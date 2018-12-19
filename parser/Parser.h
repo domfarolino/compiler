@@ -6,10 +6,10 @@
 #include <utility>
 
 #include "../lib/Token.h"
+#include "../scope/SymbolRecord.h"
 
 class Lexer;
 class ScopeManager;
-class SymbolRecord;
 
 class Parser {
 public:
@@ -28,6 +28,7 @@ private:
   void QueueError(std::string);
   void QueueExpectedTokenError(std::string);
   void QueueSymbolError(std::string);
+  void QueueTypeError(std::string);
   void FlushErrors();
 
   // Productions
@@ -43,15 +44,15 @@ private:
   bool Statement();
   bool AssignmentStatement(std::string&, bool&);
   bool Destination(std::string&, SymbolRecord&, bool&);
-  bool Expression();
-  bool ExpressionPrime();
-  bool ArithOp();
-  bool ArithOpPrime();
-  bool Relation();
-  bool RelationPrime();
-  bool Term();
-  bool TermPrime();
-  bool Factor();
+  bool Expression(SymbolType&);
+  bool ExpressionPrime(SymbolType&);
+  bool ArithOp(SymbolType&);
+  bool ArithOpPrime(SymbolType&);
+  bool Relation(SymbolType&);
+  bool RelationPrime(SymbolType&);
+  bool Term(SymbolType&);
+  bool TermPrime(SymbolType&);
+  bool Factor(SymbolType&);
   bool LoopStatement();
   bool IfStatement();
   bool ProcedureCall(std::string&);
@@ -64,7 +65,7 @@ private:
   bool VariableDeclaration(std::string&, SymbolRecord&);
   bool TypeMark(std::string&);
   bool LowerOrUpperBound(std::string&);
-  bool Number(std::string&);
+  bool Number(std::string&, SymbolType&);
 };
 
 #endif

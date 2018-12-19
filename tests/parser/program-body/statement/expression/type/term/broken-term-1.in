@@ -1,0 +1,10 @@
+program dominic is
+
+  integer dominic;
+  string farolino;
+
+begin
+
+  dominic := 10 * farolino;
+
+end program.

@@ -79,6 +79,13 @@ void Parser::QueueSymbolError(std::string inErrorString) {
   QueueError(inErrorString);
 }
 
+// Queues a regular error, but stops the code generator from generating code.
+void Parser::QueueTypeError(std::string inErrorString) {
+  // TODO(domfarolino): Tell the code generator to stop generating code, or
+  // maybe do something special.
+  QueueError(inErrorString);
+}
+
 void Parser::FlushErrors() {
   std::cerr << "\033[1;31m";
 
@@ -240,7 +247,8 @@ bool Parser::Name(std::string& identifier, SymbolRecord*& symbolRecord) {
     int errorQueueSizeSnapshot = errorQueue_.size();
 
     // <identifier> [
-    if (!Expression()) {
+    SymbolType expressionType;
+    if (!Expression(expressionType)) {
       if (errorQueueSizeSnapshot == errorQueue_.size())
         QueueExpectedTokenError("Expected expression after '[' in name");
       return false;
@@ -346,7 +354,8 @@ bool Parser::AssignmentStatement(std::string& identifier, bool& validIdentifier)
 
   int errorQueueSizeSnapshot = errorQueue_.size();
   // <destination> :=
-  if (!Expression()) {
+  SymbolType expressionType;
+  if (!Expression(expressionType)) {
     // Only queue an error if Expression didn't already (sometimes it does!).
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Expected expression for destination in assignment statement");
@@ -389,7 +398,8 @@ bool Parser::Destination(std::string& identifier, SymbolRecord& symbolRecord, bo
     int errorQueueSizeSnapshot = errorQueue_.size();
 
     // <identifier> [
-    if (!Expression()) {
+    SymbolType expressionType;
+    if (!Expression(expressionType)) {
       if (errorQueueSizeSnapshot == errorQueue_.size())
         QueueExpectedTokenError("Expected expression after '[' in assignment statement");
       return false;
@@ -411,18 +421,18 @@ bool Parser::Destination(std::string& identifier, SymbolRecord& symbolRecord, bo
 // <expression> ::= [ not ] <arithOp> <expressionPrime>
 // Expression is not always required, so this function will only queue errors
 // when something bad happens, not just for non-existence.
-bool Parser::Expression() {
+bool Parser::Expression(SymbolType& valueType) {
   bool notIsPresent = false;
   if (CheckTokenType(TokenType::TNot))
     notIsPresent = true;
 
   // [ not ]
-  if (!ArithOp())
+  if (!ArithOp(valueType))
     return false;
 
   // [ not ] <arithOp>
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!ExpressionPrime()) {
+  if (!ExpressionPrime(valueType)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Error parsing expression. Expected valid syntax");
     return false;
@@ -435,14 +445,14 @@ bool Parser::Expression() {
 // <expressionPrime> ::= & <arithOp> <expressionPrime> |
 //                       | <arithOp> <expressionPrime> |
 //                       ε
-bool Parser::ExpressionPrime() {
+bool Parser::ExpressionPrime(SymbolType& valueType) {
   if (CheckTokenType(TokenType::TAmp) || CheckTokenType(TokenType::TOr)) {
     // & or |
-    if (!ArithOp())
+    if (!ArithOp(valueType))
       return false;
 
     // & or | <arithOp>
-    return ExpressionPrime();
+    return ExpressionPrime(valueType);
   }
 
   // ε
@@ -454,13 +464,13 @@ bool Parser::ExpressionPrime() {
 /////////////////////////////// ArithOp ////////////////////////////////////
 
 // <arithOp> ::= <relation> <arithOpPrime>
-bool Parser::ArithOp() {
-  if (!Relation())
+bool Parser::ArithOp(SymbolType& valueType) {
+  if (!Relation(valueType))
     return false;
 
   // <relation>
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!ArithOpPrime()) {
+  if (!ArithOpPrime(valueType)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Error parsing expression operator. Expected valid syntax");
     return false;
@@ -471,14 +481,14 @@ bool Parser::ArithOp() {
 }
 
 // <arithOpPrime> ::= + <relation> <arithOpPrime> | - <relation> <arithOpPrime> | ε
-bool Parser::ArithOpPrime() {
+bool Parser::ArithOpPrime(SymbolType& valueType) {
   if (CheckTokenType(TokenType::TPlus) || CheckTokenType(TokenType::TMinus)) {
     // + or -
-    if (!Relation())
+    if (!Relation(valueType))
       return false;
 
     // + or - <relation>
-    return ArithOpPrime();
+    return ArithOpPrime(valueType);
   }
 
   // ε
@@ -490,13 +500,13 @@ bool Parser::ArithOpPrime() {
 ////////////////////////////// Relation ////////////////////////////////////
 
 // <relation> ::= <term> <relationPrime>
-bool Parser::Relation() {
-  if (!Term())
+bool Parser::Relation(SymbolType& valueType) {
+  if (!Term(valueType))
     return false;
 
   // <term>
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!RelationPrime()) {
+  if (!RelationPrime(valueType)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Error parsing expression relation. Expected valid syntax");
     return false;
@@ -512,7 +522,8 @@ bool Parser::Relation() {
 //                     > <term> <relationPrime> |
 //                    == <term> <relationPrime> |
 //                    != <term> <relationPrime> | ε
-bool Parser::RelationPrime() {
+bool Parser::RelationPrime(SymbolType& valueType) {
+  // TODO(domfarolino): Maybe factor this out.
   if (CheckTokenType(TokenType::TLessThan) ||
       CheckTokenType(TokenType::TGreaterThanEq) ||
       CheckTokenType(TokenType::TLessThanEq) ||
@@ -520,11 +531,11 @@ bool Parser::RelationPrime() {
       CheckTokenType(TokenType::TCompareEq) ||
       CheckTokenType(TokenType::TNotEq)) {
     // < or >= or ... or !=
-    if (!Term())
+    if (!Term(valueType))
       return false;
 
     // < or >= or ... or != <term>
-    return RelationPrime();
+    return RelationPrime(valueType);
   }
 
   // ε
@@ -536,13 +547,15 @@ bool Parser::RelationPrime() {
 //////////////////////////////// Term //////////////////////////////////////
 
 // <term> ::= <factor> <termPrime>
-bool Parser::Term() {
-  if (!Factor())
+bool Parser::Term(SymbolType& termType) {
+  SymbolType factorType;
+  if (!Factor(factorType))
     return false;
 
   // <factor>
+  termType = factorType;
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!TermPrime()) {
+  if (!TermPrime(factorType)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Error parsing expression term. Expected valid syntax");
     return false;
@@ -553,15 +566,41 @@ bool Parser::Term() {
 }
 
 // <termPrime> ::= * <factor> <termPrime> | / <factor> <termPrime> | ε
-bool Parser::TermPrime() {
+bool Parser::TermPrime(SymbolType& leftFactorType) {
   if (CheckTokenType(TokenType::TMultiply) ||
       CheckTokenType(TokenType::TDivide)) {
     // * or /
-    if (!Factor())
+    SymbolType rightFactorType;
+    // At this point, both |leftFactorType| and |factorType| must be some
+    // combination of Integers and Floats.
+
+    if (!Factor(rightFactorType))
       return false;
 
+    if ((leftFactorType != SymbolType::Integer &&
+         leftFactorType != SymbolType::Float) ||
+        (rightFactorType != SymbolType::Integer &&
+         rightFactorType != SymbolType::Float)) {
+      QueueTypeError("[Term]: " +
+                     SymbolRecord::SymbolTypeToTypeMark(leftFactorType) +
+                     " and " +
+                     SymbolRecord::SymbolTypeToTypeMark(rightFactorType) +
+                     " cannot be multiplied or divided");
+      return false;
+    }
+
+    // Assert: |leftFactorType| == (Integer || Float) &&
+    //         |factorType|     == (Integer || Float).
+    // Promote |leftFactorType| (the type that we'll eventually output to the
+    // caller) to a Float if necessary. This new type and its value will be the
+    // new "leftFactorType" of the next TermPrime.
+    if (leftFactorType == SymbolType::Float ||
+        rightFactorType == SymbolType::Float) {
+      leftFactorType = SymbolType::Float;
+    }
+
     // * or / <factor>
-    return TermPrime();
+    return TermPrime(leftFactorType);
   }
 
   // ε
@@ -571,7 +610,7 @@ bool Parser::TermPrime() {
 ////////////////////////////// End Term ////////////////////////////////////
 
 // <factor> ::= ( <expression> ) | [ - ] <name> | [ - ] <number> | <string> | <char> | true | false
-bool Parser::Factor() {
+bool Parser::Factor(SymbolType& valueType) {
   bool minus = false;
   if (CheckTokenType(TokenType::TMinus))
     minus = true;
@@ -596,6 +635,7 @@ bool Parser::Factor() {
       return false;
     }
 
+    valueType = symbolRecord->type;
     // Do some processing here.
     return true;
   } else if (errorQueue_.size() > errorQueueSizeSnapshot) {
@@ -603,14 +643,14 @@ bool Parser::Factor() {
   }
 
   std::string number;
-  if (Number(number)) {
+  if (Number(number, valueType)) {
     // Do some processing here.
     return true;
   }
 
   if (CheckTokenType(TokenType::TLeftParen)) {
     // (
-    if (!Expression()) {
+    if (!Expression(valueType)) {
       if (errorQueueSizeSnapshot == errorQueue_.size())
         QueueExpectedTokenError("Expected expression after '(' in factor");
       return false;
@@ -634,10 +674,13 @@ bool Parser::Factor() {
 
   if (CheckTokenType(TokenType::TTrue) ||
       CheckTokenType(TokenType::TFalse)) { // Boolean types.
+    valueType = SymbolType::Bool;
     return true;
   } else if (String()) { // String type.
+    valueType = SymbolType::String;
     return true;
   } else if (Char()) { // Char type.
+    valueType = SymbolType::Char;
     return true;
   }
 
@@ -675,7 +718,8 @@ bool Parser::LoopStatement() {
   }
 
   // for ( <assignment_statement> ;
-  if (!Expression()) {
+  SymbolType expressionType;
+  if (!Expression(expressionType)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Expected expression after ';' in for loop");
     return false;
@@ -724,7 +768,8 @@ bool Parser::IfStatement() {
 
   // if (
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!Expression()) {
+  SymbolType expressionType;
+  if (!Expression(expressionType)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Expected expression in if statement after '('");
     return false;
@@ -869,7 +914,8 @@ bool Parser::ArgumentList(std::vector<std::pair<std::string, SymbolRecord>>& arg
   // The language allows empty argument lists, so Expression() could have
   // returned false because it didn't exist, or because it failed to parse.
   // If it failed to parse, Expression will take care of queueing an error.
-  if (!Expression())
+  SymbolType expressionType;
+  if (!Expression(expressionType))
     return false;
 
   // TODO(domfarolino): Make this and the below instance actually push_back the
@@ -878,7 +924,8 @@ bool Parser::ArgumentList(std::vector<std::pair<std::string, SymbolRecord>>& arg
 
   int errorQueueSizeSnapshot = errorQueue_.size();
   while (CheckTokenType(TokenType::TComma)) {
-    if (!Expression()) {
+    SymbolType expressionType;
+    if (!Expression(expressionType)) {
       if (errorQueueSizeSnapshot == errorQueue_.size())
         QueueError("Expected argument after ',' in argument list");
       return false;
@@ -1141,14 +1188,22 @@ bool Parser::LowerOrUpperBound(std::string& number) {
   if (CheckTokenType(TokenType::TMinus))
     number += '-';
 
-  return Number(number);
+  SymbolType valueType;
+  return Number(number, valueType);
 }
 
 // <number> ::= [0-9][0-9_]*[.[0-9_]*]
 // Not necessary to find one in all usages, so we leave error reporting to the
 // caller.
-bool Parser::Number(std::string& number) {
+bool Parser::Number(std::string& number, SymbolType& valueType) {
   number += token_.lexeme;
-  return CheckTokenType(TokenType::TInteger) ||
-         CheckTokenType(TokenType::TFloat);
+  if (CheckTokenType(TokenType::TInteger)) {
+    valueType = SymbolType::Integer;
+    return true;
+  } else if (CheckTokenType(TokenType::TFloat)) {
+    valueType = SymbolType::Float;
+    return true;
+  }
+
+  return false;
 }

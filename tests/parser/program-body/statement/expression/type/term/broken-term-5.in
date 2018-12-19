@@ -1,0 +1,9 @@
+program dominic is
+
+  integer dominic;
+
+begin
+
+  dominic := 10 * 11 * 12 * ("dominic");
+
+end program.

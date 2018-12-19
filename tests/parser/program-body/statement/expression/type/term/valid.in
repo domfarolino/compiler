@@ -1,0 +1,10 @@
+program dominic is
+
+  integer dominic;
+  float test;
+
+begin
+
+  dominic := 10 * 11 * (10.1 / 11.44 / 2 * test);
+
+end program.

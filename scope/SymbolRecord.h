@@ -75,6 +75,22 @@ public:
                              typeMark);
   }
 
+  static std::string SymbolTypeToTypeMark(const SymbolType& symbolType) {
+    if (symbolType == SymbolType::Integer)
+      return "integer";
+    else if (symbolType == SymbolType::String)
+      return "string";
+    else if (symbolType == SymbolType::Float)
+      return "float";
+    else if (symbolType == SymbolType::Bool)
+      return "bool";
+    else if (symbolType == SymbolType::Char)
+      return "char";
+    else
+      throw std::logic_error("SymbolRecord::SymbolTypeToTypeMark was given an invalid SymbolType enum value: " +
+                             std::to_string(symbolType));
+  }
+
   static ParameterType ParameterTypeStringToParameterType(const std::string& parameterTypeString) {
     if (parameterTypeString == "in")
       return ParameterType::In;
