@@ -5,7 +5,7 @@ program dominic is
 
 begin
 
-  dominic := true * (false);
+  dominic := 10 * (30);
   farolino := (10 * (-dominic)) / 2;
 
 end program.
