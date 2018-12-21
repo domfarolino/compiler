@@ -500,13 +500,13 @@ bool Parser::ArithOpPrime(SymbolType& valueType) {
 ////////////////////////////// Relation ////////////////////////////////////
 
 // <relation> ::= <term> <relationPrime>
-bool Parser::Relation(SymbolType& valueType) {
-  if (!Term(valueType))
+bool Parser::Relation(SymbolType& relationType) {
+  if (!Term(relationType))
     return false;
 
   // <term>
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!RelationPrime(valueType)) {
+  if (!RelationPrime(relationType)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Error parsing expression relation. Expected valid syntax");
     return false;
@@ -522,7 +522,7 @@ bool Parser::Relation(SymbolType& valueType) {
 //                     > <term> <relationPrime> |
 //                    == <term> <relationPrime> |
 //                    != <term> <relationPrime> | ε
-bool Parser::RelationPrime(SymbolType& valueType) {
+bool Parser::RelationPrime(SymbolType& leftTermType) {
   // TODO(domfarolino): Maybe factor this out.
   if (CheckTokenType(TokenType::TLessThan) ||
       CheckTokenType(TokenType::TGreaterThanEq) ||
@@ -531,11 +531,34 @@ bool Parser::RelationPrime(SymbolType& valueType) {
       CheckTokenType(TokenType::TCompareEq) ||
       CheckTokenType(TokenType::TNotEq)) {
     // < or >= or ... or !=
-    if (!Term(valueType))
+    SymbolType rightTermType;
+    // At this point, both |leftTermType| and |rightTermType| must be some
+    // combination of Bools and Integers.
+    // TODO(domfarolino): Should Floats be compatible with Bools?
+    // https://github.com/domfarolino/compiler/issues/25.
+
+    if (!Term(rightTermType))
       return false;
 
+    if ((leftTermType != SymbolType::Bool &&
+         leftTermType != SymbolType::Integer) ||
+        (rightTermType != SymbolType::Bool &&
+         rightTermType != SymbolType::Integer)) {
+      QueueTypeError("[Relation]: " +
+                     SymbolRecord::SymbolTypeToTypeMark(leftTermType) +
+                     " and " +
+                     SymbolRecord::SymbolTypeToTypeMark(rightTermType) +
+                     " cannot be compared");
+      return false;
+    }
+
+    // Assert: |leftTermType|  == (Bool || Integer) &&
+    //         |rightTermType| == (Bool || Integer).
+    // |leftTermType|, if not already a Bool, must be casted into one.
+    leftTermType = SymbolType::Bool;
+
     // < or >= or ... or != <term>
-    return RelationPrime(valueType);
+    return RelationPrime(leftTermType);
   }
 
   // ε
@@ -548,14 +571,12 @@ bool Parser::RelationPrime(SymbolType& valueType) {
 
 // <term> ::= <factor> <termPrime>
 bool Parser::Term(SymbolType& termType) {
-  SymbolType factorType;
-  if (!Factor(factorType))
+  if (!Factor(termType))
     return false;
 
   // <factor>
-  termType = factorType;
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!TermPrime(factorType)) {
+  if (!TermPrime(termType)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Error parsing expression term. Expected valid syntax");
     return false;
@@ -577,6 +598,8 @@ bool Parser::TermPrime(SymbolType& leftFactorType) {
     if (!Factor(rightFactorType))
       return false;
 
+    // TODO(domfarolino): Factor this out.
+    // https://github.com/domfarolino/compiler/issues/26.
     if ((leftFactorType != SymbolType::Integer &&
          leftFactorType != SymbolType::Float) ||
         (rightFactorType != SymbolType::Integer &&
@@ -589,8 +612,8 @@ bool Parser::TermPrime(SymbolType& leftFactorType) {
       return false;
     }
 
-    // Assert: |leftFactorType| == (Integer || Float) &&
-    //         |factorType|     == (Integer || Float).
+    // Assert: |leftFactorType|  == (Integer || Float) &&
+    //         |rightFactorType| == (Integer || Float).
     // Promote |leftFactorType| (the type that we'll eventually output to the
     // caller) to a Float if necessary. This new type and its value will be the
     // new "leftFactorType" of the next TermPrime.

@@ -1,0 +1,9 @@
+program dominic is
+
+  bool dominic;
+
+begin
+
+  dominic := (true == (10 < (11 >= 12)));
+
+end program.

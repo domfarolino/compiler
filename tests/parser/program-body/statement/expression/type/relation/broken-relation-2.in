@@ -1,0 +1,9 @@
+program dominic is
+
+  bool dominic;
+
+begin
+
+  dominic := true <= "farolino";
+
+end program.

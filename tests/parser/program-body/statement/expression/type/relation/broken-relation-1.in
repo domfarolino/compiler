@@ -1,0 +1,10 @@
+program dominic is
+
+  bool dominic;
+  string farolino;
+
+begin
+
+  dominic := true <= farolino;
+
+end program.
