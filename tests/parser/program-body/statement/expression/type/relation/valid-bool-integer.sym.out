@@ -1,5 +1,5 @@
 +--------Symbol table--------+
-     bool         dominic          isGlobal:     -- paramType:  None
+     bool          result          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 
 Program compiled successfully

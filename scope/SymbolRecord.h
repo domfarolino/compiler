@@ -70,12 +70,14 @@ public:
       return SymbolType::Bool;
     else if (typeMark == "char")
       return SymbolType::Char;
+    else if (typeMark == "procedure")
+      throw std::logic_error("SymbolRecord::TypeMarkToSymbolType 'procedure' is not a valid <type_mark>");
     else
       throw std::logic_error("SymbolRecord::TypeMarkToSymbolType was given an invalid type mark: " +
                              typeMark);
   }
 
-  static std::string SymbolTypeToTypeMark(const SymbolType& symbolType) {
+  static std::string SymbolTypeToDebugString(const SymbolType& symbolType) {
     if (symbolType == SymbolType::Integer)
       return "integer";
     else if (symbolType == SymbolType::String)
@@ -86,8 +88,10 @@ public:
       return "bool";
     else if (symbolType == SymbolType::Char)
       return "char";
+    else if (symbolType == SymbolType::Procedure)
+      return "procedure";
     else
-      throw std::logic_error("SymbolRecord::SymbolTypeToTypeMark was given an invalid SymbolType enum value: " +
+      throw std::logic_error("SymbolRecord::SymbolTypeToDebugString was given an invalid SymbolType enum value: " +
                              std::to_string(symbolType));
   }
 

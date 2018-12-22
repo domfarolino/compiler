@@ -1,0 +1,9 @@
+program dominic is
+
+  bool result;
+
+begin
+
+  result := 10.384 <= 15.284;
+
+end program.

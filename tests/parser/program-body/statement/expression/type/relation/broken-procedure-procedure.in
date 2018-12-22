@@ -1,0 +1,17 @@
+program dominic is
+
+  bool result;
+
+  procedure f()
+  begin
+  end procedure;
+
+  procedure g()
+  begin
+  end procedure;
+
+begin
+
+  result := f <= g;
+
+end program.

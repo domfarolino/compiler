@@ -1,0 +1,6 @@
++--------Symbol table--------+
+     bool          result          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
+Program compiled successfully
+[1;31m[0m

@@ -532,22 +532,35 @@ bool Parser::RelationPrime(SymbolType& leftTermType) {
       CheckTokenType(TokenType::TNotEq)) {
     // < or >= or ... or !=
     SymbolType rightTermType;
-    // At this point, both |leftTermType| and |rightTermType| must be some
-    // combination of Bools and Integers.
-    // TODO(domfarolino): Should Floats be compatible with Bools?
-    // https://github.com/domfarolino/compiler/issues/25.
-
     if (!Term(rightTermType))
       return false;
 
-    if ((leftTermType != SymbolType::Bool &&
-         leftTermType != SymbolType::Integer) ||
-        (rightTermType != SymbolType::Bool &&
-         rightTermType != SymbolType::Integer)) {
+    // At this point, both |leftTermType| and |rightTermType| must be some
+    // combination of the following types for a valid comparison:
+    // Comparison types allowed:
+    //  - Integer and {Integer, Float, Bool} ✅
+    //  - Bool and {Bool, Integer}           ✅
+    //  - Float and {Float, Integer}         ✅
+    //  - Char and {Char}                    ✅
+    //  - Float and AboveSet∪{Bool}          ❌ (see issue#25).
+    if ((leftTermType == SymbolType::Integer &&
+          (rightTermType != SymbolType::Integer &&
+           rightTermType != SymbolType::Float &&
+           rightTermType != SymbolType::Bool)) ||
+        (leftTermType == SymbolType::Bool &&
+          (rightTermType != SymbolType::Bool &&
+           rightTermType != SymbolType::Integer)) ||
+        (leftTermType == SymbolType::Float &&
+          (rightTermType != SymbolType::Float &&
+           rightTermType != SymbolType::Integer)) ||
+        (leftTermType == SymbolType::Char &&
+          rightTermType != SymbolType::Char) ||
+        leftTermType == SymbolType::String ||
+        leftTermType == SymbolType::Procedure) {
       QueueTypeError("[Relation]: " +
-                     SymbolRecord::SymbolTypeToTypeMark(leftTermType) +
+                     SymbolRecord::SymbolTypeToDebugString(leftTermType) +
                      " and " +
-                     SymbolRecord::SymbolTypeToTypeMark(rightTermType) +
+                     SymbolRecord::SymbolTypeToDebugString(rightTermType) +
                      " cannot be compared");
       return false;
     }
@@ -555,6 +568,8 @@ bool Parser::RelationPrime(SymbolType& leftTermType) {
     // Assert: |leftTermType|  == (Bool || Integer) &&
     //         |rightTermType| == (Bool || Integer).
     // |leftTermType|, if not already a Bool, must be casted into one.
+    // TODO(domfarolino): [CODEGEN] The left value (aka ultimate returned value)
+    // must be properly casted to a boolean here.
     leftTermType = SymbolType::Bool;
 
     // < or >= or ... or != <term>
@@ -592,12 +607,11 @@ bool Parser::TermPrime(SymbolType& leftFactorType) {
       CheckTokenType(TokenType::TDivide)) {
     // * or /
     SymbolType rightFactorType;
-    // At this point, both |leftFactorType| and |factorType| must be some
-    // combination of Integers and Floats.
-
     if (!Factor(rightFactorType))
       return false;
 
+    // At this point, both |leftFactorType| and |factorType| must be some
+    // combination of Integers and Floats for a valid term operation.
     // TODO(domfarolino): Factor this out.
     // https://github.com/domfarolino/compiler/issues/26.
     if ((leftFactorType != SymbolType::Integer &&
@@ -605,9 +619,9 @@ bool Parser::TermPrime(SymbolType& leftFactorType) {
         (rightFactorType != SymbolType::Integer &&
          rightFactorType != SymbolType::Float)) {
       QueueTypeError("[Term]: " +
-                     SymbolRecord::SymbolTypeToTypeMark(leftFactorType) +
+                     SymbolRecord::SymbolTypeToDebugString(leftFactorType) +
                      " and " +
-                     SymbolRecord::SymbolTypeToTypeMark(rightFactorType) +
+                     SymbolRecord::SymbolTypeToDebugString(rightFactorType) +
                      " cannot be multiplied or divided");
       return false;
     }
@@ -619,6 +633,8 @@ bool Parser::TermPrime(SymbolType& leftFactorType) {
     // new "leftFactorType" of the next TermPrime.
     if (leftFactorType == SymbolType::Float ||
         rightFactorType == SymbolType::Float) {
+      // TODO(domfarolino): [CODEGEN] The left value, aka the ultimate value
+      // we're returning here must be properly casted.
       leftFactorType = SymbolType::Float;
     }
 
@@ -882,11 +898,11 @@ bool Parser::ProcedureCall(std::string& identifier) {
   // Assert: THIS IS NOT A DRILL. This is a real procedure call since we know
   // the identifier is valid. This means in order to properly invoke a
   // procedure, we have check that:
-  //   1.) The identifier matches an accessible procedure identifier ✅
+  //   1.) The identifier matches an accessible procedure identifier         ✅
   //     - This is already tested by AssignmentStatement's Destination call.
-  //   2.) Any names used as arguments are valid symbols ✅
+  //   2.) Any names used as arguments are valid symbols                     ✅
   //   3.) The argument list length matches the stored parameter list length ✅
-  //   4.) Each argument type matches the expected type ❌
+  //   4.) Each argument type matches the expected type                      ❌
   // TODO(domfarolino): If anything is wrong with the above conditions, errors
   // must be displayed in the above order. This needs tested
   // (https://github.com/domfarolino/compiler/issues/24).

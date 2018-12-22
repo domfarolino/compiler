@@ -1,9 +1,9 @@
 program dominic is
 
-  bool dominic;
+  bool result;
 
 begin
 
-  dominic := true <= 'f';
+  result := true <= 10;
 
 end program.
