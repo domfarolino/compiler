@@ -1,0 +1,9 @@
+program dominic is
+
+  integer result;
+
+begin
+
+  result := 132.242 * true;
+
+end program.

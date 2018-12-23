@@ -570,6 +570,7 @@ bool Parser::RelationPrime(SymbolType& leftTermType) {
     // |leftTermType|, if not already a Bool, must be casted into one.
     // TODO(domfarolino): [CODEGEN] The left value (aka ultimate returned value)
     // must be properly casted to a boolean here.
+    // TODO(domfarolino): [CODEGEN] Cast Bool types to appropriate integers.
     leftTermType = SymbolType::Bool;
 
     // < or >= or ... or != <term>

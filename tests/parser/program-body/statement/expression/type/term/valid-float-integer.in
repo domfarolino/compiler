@@ -1,0 +1,9 @@
+program dominic is
+
+  float result;
+
+begin
+
+  result := 104.283 * 20;
+
+end program.

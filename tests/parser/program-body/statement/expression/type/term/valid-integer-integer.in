@@ -1,9 +1,9 @@
 program dominic is
 
-  integer dominic;
+  integer result;
 
 begin
 
-  dominic := 10 * 'd';
+  result := 10 * 20;
 
 end program.

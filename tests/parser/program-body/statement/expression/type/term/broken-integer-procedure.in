@@ -1,0 +1,13 @@
+program dominic is
+
+  integer result;
+
+  procedure f()
+  begin
+  end procedure;
+
+begin
+
+  result := 10 * f;
+
+end program.
