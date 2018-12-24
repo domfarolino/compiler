@@ -464,13 +464,13 @@ bool Parser::ExpressionPrime(SymbolType& valueType) {
 /////////////////////////////// ArithOp ////////////////////////////////////
 
 // <arithOp> ::= <relation> <arithOpPrime>
-bool Parser::ArithOp(SymbolType& valueType) {
-  if (!Relation(valueType))
+bool Parser::ArithOp(SymbolType& arithOpType) {
+  if (!Relation(arithOpType))
     return false;
 
   // <relation>
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!ArithOpPrime(valueType)) {
+  if (!ArithOpPrime(arithOpType)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Error parsing expression operator. Expected valid syntax");
     return false;
@@ -480,15 +480,40 @@ bool Parser::ArithOp(SymbolType& valueType) {
   return true;
 }
 
-// <arithOpPrime> ::= + <relation> <arithOpPrime> | - <relation> <arithOpPrime> | ε
-bool Parser::ArithOpPrime(SymbolType& valueType) {
+// <arithOpPrime> ::= + <relation> <arithOpPrime> |
+//                    - <relation> <arithOpPrime> | ε
+bool Parser::ArithOpPrime(SymbolType& leftRelationType) {
   if (CheckTokenType(TokenType::TPlus) || CheckTokenType(TokenType::TMinus)) {
     // + or -
-    if (!Relation(valueType))
+    SymbolType rightRelationType;
+    if (!Relation(rightRelationType))
       return false;
 
+    // At this point, both |leftRelationType| and |rightRelationType| must be
+    // some combination of Integers and Floats for a valid arith op.
+    if ((leftRelationType != SymbolType::Integer &&
+         leftRelationType != SymbolType::Float) ||
+        (rightRelationType != SymbolType::Integer &&
+         rightRelationType != SymbolType::Float)) {
+      QueueTypeError("[ArithOp]: " +
+                     SymbolRecord::SymbolTypeToDebugString(leftRelationType) +
+                     " and " +
+                     SymbolRecord::SymbolTypeToDebugString(rightRelationType) +
+                     " cannot be added or subtracted");
+      return false;
+    }
+
+    // Assert: |leftRelationType|  == (Integer || Float) &&
+    //         |rightRelationType| == (Integer || Float).
+    if (leftRelationType == SymbolType::Float ||
+        rightRelationType == SymbolType::Float) {
+      // TODO(domfarolino): [CODEGEN] The left value, aka the ultimate value
+      // we're returning here must be properly casted.
+      leftRelationType = SymbolType::Float;
+    }
+
     // + or - <relation>
-    return ArithOpPrime(valueType);
+    return ArithOpPrime(leftRelationType);
   }
 
   // ε
@@ -536,7 +561,7 @@ bool Parser::RelationPrime(SymbolType& leftTermType) {
       return false;
 
     // At this point, both |leftTermType| and |rightTermType| must be some
-    // combination of the following types for a valid comparison:
+    // combination of the following types for a valid relation:
     // Comparison types allowed:
     //  - Integer and {Integer, Float, Bool} ✅
     //  - Bool and {Bool, Integer}           ✅
@@ -565,12 +590,10 @@ bool Parser::RelationPrime(SymbolType& leftTermType) {
       return false;
     }
 
-    // Assert: |leftTermType|  == (Bool || Integer) &&
-    //         |rightTermType| == (Bool || Integer).
-    // |leftTermType|, if not already a Bool, must be casted into one.
     // TODO(domfarolino): [CODEGEN] The left value (aka ultimate returned value)
     // must be properly casted to a boolean here.
     // TODO(domfarolino): [CODEGEN] Cast Bool types to appropriate integers.
+    // |leftTermType|, if not already a Bool, must be casted into one.
     leftTermType = SymbolType::Bool;
 
     // < or >= or ... or != <term>
@@ -611,8 +634,8 @@ bool Parser::TermPrime(SymbolType& leftFactorType) {
     if (!Factor(rightFactorType))
       return false;
 
-    // At this point, both |leftFactorType| and |factorType| must be some
-    // combination of Integers and Floats for a valid term operation.
+    // At this point, both |leftFactorType| and |rightFactorType| must be some
+    // combination of Integers and Floats for a valid term.
     // TODO(domfarolino): Factor this out.
     // https://github.com/domfarolino/compiler/issues/26.
     if ((leftFactorType != SymbolType::Integer &&

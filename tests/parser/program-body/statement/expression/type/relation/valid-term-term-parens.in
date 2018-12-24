@@ -1,0 +1,9 @@
+program dominic is
+
+  bool result;
+
+begin
+
+  result := (10 * 20) <= (10.02 / 13.4);
+
+end program.

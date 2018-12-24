@@ -1,0 +1,9 @@
+program dominic is
+
+  float result;
+
+begin
+
+  result := (10 * 11) + (11 / 11.43);
+
+end program.

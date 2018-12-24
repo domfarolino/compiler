@@ -1,0 +1,9 @@
+program dominic is
+
+  integer result;
+
+begin
+
+  result := 10 + 'c';
+
+end program.

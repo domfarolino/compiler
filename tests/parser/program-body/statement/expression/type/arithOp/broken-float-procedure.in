@@ -1,0 +1,13 @@
+program dominic is
+
+  float result;
+
+  procedure f()
+  begin
+  end procedure;
+
+begin
+
+  result := 10.592 + f;
+
+end program.

@@ -1,0 +1,9 @@
+program dominic is
+
+  float result;
+
+begin
+
+  result := 384.24 + 10;
+
+end program.

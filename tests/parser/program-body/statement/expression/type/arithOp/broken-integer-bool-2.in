@@ -1,0 +1,9 @@
+program dominic is
+
+  integer result;
+
+begin
+
+  result := 10 + (10.42 != 5 * 2);
+
+end program.

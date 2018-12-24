@@ -1,0 +1,9 @@
+program dominic is
+
+  string result;
+
+begin
+
+  result := "stringLiteral" + "alsoStringLiteral";
+
+end program.
