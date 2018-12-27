@@ -421,18 +421,18 @@ bool Parser::Destination(std::string& identifier, SymbolRecord& symbolRecord, bo
 // <expression> ::= [ not ] <arithOp> <expressionPrime>
 // Expression is not always required, so this function will only queue errors
 // when something bad happens, not just for non-existence.
-bool Parser::Expression(SymbolType& valueType) {
+bool Parser::Expression(SymbolType& expressionType) {
   bool notIsPresent = false;
   if (CheckTokenType(TokenType::TNot))
     notIsPresent = true;
 
   // [ not ]
-  if (!ArithOp(valueType))
+  if (!ArithOp(expressionType))
     return false;
 
   // [ not ] <arithOp>
   int errorQueueSizeSnapshot = errorQueue_.size();
-  if (!ExpressionPrime(valueType)) {
+  if (!ExpressionPrime(expressionType)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Error parsing expression. Expected valid syntax");
     return false;
@@ -445,14 +445,25 @@ bool Parser::Expression(SymbolType& valueType) {
 // <expressionPrime> ::= & <arithOp> <expressionPrime> |
 //                       | <arithOp> <expressionPrime> |
 //                       ε
-bool Parser::ExpressionPrime(SymbolType& valueType) {
+bool Parser::ExpressionPrime(SymbolType& leftArithOpType) {
   if (CheckTokenType(TokenType::TAmp) || CheckTokenType(TokenType::TOr)) {
     // & or |
-    if (!ArithOp(valueType))
+    SymbolType rightArithOpType;
+    if (!ArithOp(rightArithOpType))
       return false;
 
+    if (leftArithOpType != SymbolType::Integer ||
+        rightArithOpType != SymbolType::Integer) {
+      QueueTypeError("[Expression]: " +
+                     SymbolRecord::SymbolTypeToDebugString(leftArithOpType) +
+                     " and " +
+                     SymbolRecord::SymbolTypeToDebugString(rightArithOpType) +
+                     " cannot be bitwise operands");
+      return false;
+    }
+
     // & or | <arithOp>
-    return ExpressionPrime(valueType);
+    return ExpressionPrime(leftArithOpType);
   }
 
   // ε
@@ -625,7 +636,8 @@ bool Parser::Term(SymbolType& termType) {
   return true;
 }
 
-// <termPrime> ::= * <factor> <termPrime> | / <factor> <termPrime> | ε
+// <termPrime> ::= * <factor> <termPrime> |
+//                 / <factor> <termPrime> | ε
 bool Parser::TermPrime(SymbolType& leftFactorType) {
   if (CheckTokenType(TokenType::TMultiply) ||
       CheckTokenType(TokenType::TDivide)) {
@@ -672,7 +684,13 @@ bool Parser::TermPrime(SymbolType& leftFactorType) {
 
 ////////////////////////////// End Term ////////////////////////////////////
 
-// <factor> ::= ( <expression> ) | [ - ] <name> | [ - ] <number> | <string> | <char> | true | false
+// <factor> ::= ( <expression> ) |
+//              [ - ] <name> |
+//              [ - ] <number> |
+//              <string> |
+//              <char> |
+//              true |
+//              false
 bool Parser::Factor(SymbolType& valueType) {
   bool minus = false;
   if (CheckTokenType(TokenType::TMinus))

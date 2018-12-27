@@ -1,0 +1,9 @@
+program dominic is
+
+  integer result;
+
+begin
+
+  result := 10 | (22 + 13.432);
+
+end program.

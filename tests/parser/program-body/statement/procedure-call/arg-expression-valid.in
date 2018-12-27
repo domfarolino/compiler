@@ -4,5 +4,5 @@ program dominic is
   end procedure;
 
 begin
-  fn(10, (11.11 * 12) + 13, (true & (false | true)), "domfarolino", 'd');
+  fn(10, (11.11 * 12) + 13, (10 & (11 | 4858)), "domfarolino", 'd');
 end program.
