@@ -4,6 +4,6 @@ program dominic is
 
 begin
 
-  farolino := farolino[4 +];
+  farolino := dominic[4 +];
 
 end program.
