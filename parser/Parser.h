@@ -37,22 +37,22 @@ private:
   bool ProgramBody();
   bool Identifier();
   bool Identifier(std::string&);
-  bool String();
-  bool Char();
-  bool Name(std::string&, SymbolRecord*&);
+  bool String(SymbolRecord&);
+  bool Char(SymbolRecord&);
+  bool Name(std::string&, SymbolRecord&);
   bool Declaration();
   bool Statement();
   bool AssignmentStatement(std::string&, bool&);
   bool Destination(std::string&, SymbolRecord&, bool&);
-  bool Expression(SymbolType&);
-  bool ExpressionPrime(SymbolType&);
-  bool ArithOp(SymbolType&);
-  bool ArithOpPrime(SymbolType&);
-  bool Relation(SymbolType&);
-  bool RelationPrime(SymbolType&);
-  bool Term(SymbolType&);
-  bool TermPrime(SymbolType&);
-  bool Factor(SymbolType&);
+  bool Expression(SymbolRecord&);
+  bool ExpressionPrime(SymbolRecord&);
+  bool ArithOp(SymbolRecord&);
+  bool ArithOpPrime(SymbolRecord&);
+  bool Relation(SymbolRecord&);
+  bool RelationPrime(SymbolRecord&);
+  bool Term(SymbolRecord&);
+  bool TermPrime(SymbolRecord&);
+  bool Factor(SymbolRecord&);
   bool LoopStatement();
   bool IfStatement();
   bool ProcedureCall(std::string&);
@@ -65,7 +65,7 @@ private:
   bool VariableDeclaration(std::string&, SymbolRecord&);
   bool TypeMark(std::string&);
   bool LowerOrUpperBound(std::string&);
-  bool Number(std::string&, SymbolType&);
+  bool Number(std::string&, SymbolRecord&);
 };
 
 #endif
