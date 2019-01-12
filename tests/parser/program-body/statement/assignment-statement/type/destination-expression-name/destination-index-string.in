@@ -1,0 +1,10 @@
+program dominic is
+
+  integer target;
+  integer result[0:9];
+
+begin
+
+  result["string"] := target;
+
+end program.

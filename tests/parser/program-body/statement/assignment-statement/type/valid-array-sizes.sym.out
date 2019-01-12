@@ -1,0 +1,7 @@
++--------Symbol table--------+
+   string      expression[24 : 36] isGlobal:     -- paramType:  None
+   string          target [0 : 12] isGlobal:     -- paramType:  None
++--------End symbol table----+
+
+Program compiled successfully
+[1;31m[0m

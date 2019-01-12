@@ -1,0 +1,3 @@
+[1;31mLine 8: Assignment statement target (bool) is not compatible with expression (float)
+Line 8: Error parsing program body
+[0m

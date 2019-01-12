@@ -1,0 +1,10 @@
+program dominic is
+
+  integer target;
+  string expression;
+
+begin
+
+  target := expression;
+
+end program.

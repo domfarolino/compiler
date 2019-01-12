@@ -34,6 +34,17 @@
  * because it did not exist. This seems like less checks, but I could be wrong.
  */
 
+// TODO(domfarolino): Factor this out as a part of
+// https://github.com/domfarolino/compiler/issues/26.
+// Implements
+// https://docs.google.com/document/d/1QrD3HN5rHX-3zrShlq4g6sQgU0hXnOqtfcCx6OqqNNc/edit#heading=h.ilfzxw1fez7p.
+bool IsArrayIndex(const SymbolRecord& symbolRecord) {
+  if (symbolRecord.type != SymbolType::Integer)
+    return false;
+
+  return true;
+}
+
 Parser::Parser(Lexer& inLexer, ScopeManager &inScopes, bool inSymbolInsight):
                                               lexer_(inLexer),
                                               scopeManager_(inScopes),
@@ -248,6 +259,10 @@ bool Parser::Name(std::string& identifier, SymbolRecord& symbolRecord) {
   symbolRecord = SymbolRecord(*scopeManager_.getSymbol(identifier));
 
   // <identifier>
+  // TODO(domfarolino): If |destinationSymbol| is an array symbol that we're
+  // indexing, modify |destinationSymbol| (since it is a copy that we're
+  // "returning" from this method) to be the indexed value, when CodeGen has
+  // support for arrays.
   if (CheckTokenType(TokenType::TLeftBracket)) {
     if (!symbolRecord.isArray) {
       QueueSymbolError("Cannot index into non-array name '" + identifier + "'");
@@ -256,11 +271,20 @@ bool Parser::Name(std::string& identifier, SymbolRecord& symbolRecord) {
 
     int errorQueueSizeSnapshot = errorQueue_.size();
 
+    // Related to the above TODO.
+    symbolRecord.isArray = false;
+
     // <identifier> [
     SymbolRecord expressionSymbol;
     if (!Expression(expressionSymbol)) {
       if (errorQueueSizeSnapshot == errorQueue_.size())
         QueueExpectedTokenError("Expected expression after '[' in name");
+      return false;
+    }
+
+    if (!IsArrayIndex(expressionSymbol)) {
+      QueueTypeError("Array index must be an integer type, but got a " +
+                      SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type));
       return false;
     }
 
@@ -349,11 +373,11 @@ bool Parser::Statement() {
 
 // <assignment_statement> ::= <destination> := <expression>
 bool Parser::AssignmentStatement(std::string& identifier, bool& validIdentifier) {
-  SymbolRecord symbolRecord;
+  SymbolRecord destinationSymbol;
   // <assignment_statement> is not required, as up the chain it is part of a
   // (<statement>;)*, so if we fail to find the first token we cannot queue
   // an error quite yet.
-  if (!Destination(identifier, symbolRecord, validIdentifier))
+  if (!Destination(identifier, destinationSymbol, validIdentifier))
     return false;
 
   // <destination>
@@ -372,14 +396,51 @@ bool Parser::AssignmentStatement(std::string& identifier, bool& validIdentifier)
     return false;
   }
 
+  // Both-are-or-are-not-arrays check.
+  if (destinationSymbol.isArray != expressionSymbol.isArray) {
+    QueueTypeError("Assignment statement target and expression array-ness must match");
+    return false;
+  }
+
+  // If both are arrays, do a static length check.
+  // TODO(domfarolino): Factor this out
+  // https://github.com/domfarolino/compiler/issues/26.
+  if (destinationSymbol.isArray) {
+    int lhsSize = std::stoi(destinationSymbol.upperBound) -
+                  std::stoi(destinationSymbol.lowerBound),
+        rhsSize = std::stoi(expressionSymbol.upperBound) -
+                  std::stoi(expressionSymbol.lowerBound);
+    if (lhsSize != rhsSize) {
+      QueueTypeError("Assignment statement target and expression arrays must be of the same length");
+      return false;
+    }
+  }
+
+  // TODO(domfarolino): Factor this out
+  // https://github.com/domfarolino/compiler/issues/26.
+  if (destinationSymbol.type != expressionSymbol.type && !(
+       (destinationSymbol.type == SymbolType::Integer && expressionSymbol.type == SymbolType::Float) ||
+       (destinationSymbol.type == SymbolType::Float && expressionSymbol.type == SymbolType::Integer) ||
+       (destinationSymbol.type == SymbolType::Integer && expressionSymbol.type == SymbolType::Bool) ||
+       (destinationSymbol.type == SymbolType::Bool && expressionSymbol.type == SymbolType::Integer)
+     )) {
+    QueueTypeError("Assignment statement target (" +
+                   SymbolRecord::SymbolTypeToDebugString(destinationSymbol.type) +
+                   ") is not compatible with expression (" +
+                   SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type) +
+                   ")");
+
+    return false;
+  }
+
   // <destination> := <expression>
   return true;
 }
 
 // <destination> ::= <identifier> [ [ <expression> ] ]
-// TODO(domfarolino): It seems that ::Destination() does not use its
-// symbolRecord; we can probably get rid of the argument.
-bool Parser::Destination(std::string& identifier, SymbolRecord& symbolRecord, bool& validIdentifier) {
+bool Parser::Destination(std::string& identifier,
+                         SymbolRecord& destinationSymbol,
+                         bool& validIdentifier) {
   // <destination> is not required (see <assignment_statement>).
   if (!Identifier(identifier)) {
     validIdentifier = false;
@@ -391,19 +452,26 @@ bool Parser::Destination(std::string& identifier, SymbolRecord& symbolRecord, bo
     return false;
   }
 
-  SymbolRecord* destinationRecord = scopeManager_.getSymbol(identifier);
+  destinationSymbol = SymbolRecord(*scopeManager_.getSymbol(identifier));
 
   // Procedures cannot be destinations. If the author was trying to assign or
   // index into a procedure, then ProcedureCall will catch that.
-  if (destinationRecord->type == SymbolType::Procedure)
+  if (destinationSymbol.type == SymbolType::Procedure)
     return false;
 
   // <identifier>
+  // TODO(domfarolino): If |destinationSymbol| is an array symbol that we're
+  // indexing, modify |destinationSymbol| (since it is a copy that we're
+  // "returning" from this method) to be the indexed value, when CodeGen has
+  // support for arrays.
   if (CheckTokenType(TokenType::TLeftBracket)) {
-    if (!destinationRecord->isArray) {
+    if (!destinationSymbol.isArray) {
       QueueSymbolError("Cannot index into non-array destination '" + identifier  + "'");
       return false;
     }
+
+    // Related to the above TODO.
+    destinationSymbol.isArray = false;
 
     int errorQueueSizeSnapshot = errorQueue_.size();
 
@@ -412,6 +480,12 @@ bool Parser::Destination(std::string& identifier, SymbolRecord& symbolRecord, bo
     if (!Expression(expressionSymbol)) {
       if (errorQueueSizeSnapshot == errorQueue_.size())
         QueueExpectedTokenError("Expected expression after '[' in assignment statement");
+      return false;
+    }
+
+    if (!IsArrayIndex(expressionSymbol)) {
+      QueueTypeError("Array index must be an integer type, but got a " +
+                      SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type));
       return false;
     }
 
@@ -725,13 +799,25 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
   if (Name(identifier, symbolRecord)) {
     // Assert: symbolRecord is a copy of a valid Symbol.
 
+    // TODO(domfarolino): Factor this (and below copy of this) out into the Type
+    // checking module https://github.com/domfarolino/compiler/issues/26.
     // Minus (-) cannot be applied to non-{integer, float}s.
     if (minus && (symbolRecord.type != SymbolType::Integer &&
                   symbolRecord.type != SymbolType::Float)) {
-      QueueSymbolError("Minus (-) cannot be applied to symbol '" + identifier +
-                       "' which is not of type integer or float");
+      QueueTypeError("Minus (-) cannot be applied to symbol '" + identifier +
+                     "' (" +
+                     SymbolRecord::SymbolTypeToDebugString(symbolRecord.type) +
+                     ") which is not of type integer or float");
       return false;
     }
+
+    // Minus should not apply to array-types currently. See
+    // https://github.com/domfarolino/compiler/issues/35.
+    if (minus && symbolRecord.isArray) {
+      QueueTypeError("Minus (-) cannot be applied to array symbols. This may change however, see https://github.com/domfarolino/compiler/issues/35");
+      return false;
+    }
+
     // Do some processing here.
     return true;
   } else if (errorQueue_.size() > errorQueueSizeSnapshot) {
@@ -759,12 +845,28 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
       return false;
     }
 
+    // Minus (-) cannot be applied to non-{integer, float}s.
+    if (minus && (symbolRecord.type != SymbolType::Integer &&
+                  symbolRecord.type != SymbolType::Float)) {
+      QueueTypeError("Minus (-) cannot be applied to an '( expression )' of type " +
+                     SymbolRecord::SymbolTypeToDebugString(symbolRecord.type) +
+                     " which is not an integer or float");
+      return false;
+    }
+
+    // Minus should not apply to array-types currently. See
+    // https://github.com/domfarolino/compiler/issues/35.
+    if (minus && symbolRecord.isArray) {
+      QueueTypeError("Minus (-) cannot be applied to an '( expression )' that is an array. This may change however, see https://github.com/domfarolino/compiler/issues/35");
+      return false;
+    }
+
     // ( <expression> )
     return true;
   }
 
   if (minus) {
-    QueueExpectedTokenError("Unexpected '-' before factor that is not a number or name");
+    QueueTypeError("Minus cannot be applied to strings, bools, or chars.");
     return false;
   }
 

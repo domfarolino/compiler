@@ -1,9 +1,0 @@
-program dominic is
-
-  integer farolino;
-
-begin
-
-  farolino := -("dominic");
-
-end program.

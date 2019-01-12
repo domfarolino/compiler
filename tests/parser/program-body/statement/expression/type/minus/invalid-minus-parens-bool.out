@@ -1,0 +1,3 @@
+[1;31mLine 7: Minus (-) cannot be applied to an '( expression )' of type bool which is not an integer or float
+Line 7: Error parsing program body
+[0m

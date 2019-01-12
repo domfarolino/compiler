@@ -1,0 +1,9 @@
+program dominic is
+
+  char target;
+
+begin
+
+  target := -('c');
+
+end program.

@@ -4,6 +4,5 @@ program dominic is
 
 begin
 
-  dominic[true] := (0 + 18) / 2 + (-);
-
+  dominic[10 + 8] := (0 + 18) / 2 + (-); 
 end program.

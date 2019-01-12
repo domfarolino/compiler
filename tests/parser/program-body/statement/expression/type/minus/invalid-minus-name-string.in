@@ -1,0 +1,10 @@
+program dominic is
+
+  string target;
+  string name;
+
+begin
+
+  target := -name;
+
+end program.

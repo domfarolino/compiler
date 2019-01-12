@@ -1,0 +1,10 @@
+program dominic is
+
+  char target;
+  char name;
+
+begin
+
+  target := -(name);
+
+end program.

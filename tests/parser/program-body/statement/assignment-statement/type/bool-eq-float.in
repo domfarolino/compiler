@@ -1,0 +1,10 @@
+program dominic is
+
+  bool target;
+  float expression;
+
+begin
+
+  target := expression;
+
+end program.

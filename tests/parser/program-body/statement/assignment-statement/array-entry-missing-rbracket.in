@@ -1,9 +1,10 @@
 program dominic is
 
+  integer index;
   integer dominic [10 : 20];
 
 begin
 
-  dominic [true := ;
+  dominic [index := ;
 
 end program.

@@ -1,0 +1,9 @@
+program dominic is
+
+  string target;
+
+begin
+
+  target := -"dominic";
+
+end program.

@@ -1,0 +1,10 @@
+program dominic is
+
+  string target[0: 12];
+  string expression[24: 36];
+
+begin
+
+  target := expression;
+
+end program.

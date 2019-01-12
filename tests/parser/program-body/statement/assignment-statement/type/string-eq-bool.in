@@ -1,0 +1,10 @@
+program dominic is
+
+  string target;
+  bool expression;
+
+begin
+
+  target := expression;
+
+end program.

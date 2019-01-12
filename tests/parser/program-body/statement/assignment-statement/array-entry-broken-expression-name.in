@@ -4,6 +4,6 @@ program dominic is
 
 begin
 
-  dominic[true] := dominic[0 + ()];
+  dominic[10 + 2] := dominic[0 + ()];
 
 end program.

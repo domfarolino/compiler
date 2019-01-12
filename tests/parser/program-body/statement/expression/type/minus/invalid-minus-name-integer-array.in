@@ -1,0 +1,10 @@
+program dominic is
+
+  integer target[0:9];
+  integer arrayName[0:9];
+
+begin
+
+  target := -arrayName;
+
+end program.

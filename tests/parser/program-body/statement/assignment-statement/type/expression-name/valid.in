@@ -1,0 +1,11 @@
+program dominic is
+
+  integer target;
+  integer result[0:9];
+
+begin
+
+  target := result[243];
+  target := result[target];
+
+end program.
