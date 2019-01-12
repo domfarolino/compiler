@@ -1,0 +1,13 @@
+program dominic is
+
+  string expression;
+
+begin
+
+  expression := "dominic";
+
+  if (expression) then
+    expression := "farolino";
+  end if;
+
+end program.

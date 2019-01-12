@@ -1,0 +1,11 @@
+program dominic is
+
+  bool expression;
+
+begin
+
+  for (expression := true; expression)
+    expression := false;
+  end for;
+
+end program.

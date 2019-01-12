@@ -1,0 +1,11 @@
+program dominic is
+
+  char expression;
+
+begin
+
+  for (expression := 'c'; expression)
+    expression := 'd';
+  end for;
+
+end program.

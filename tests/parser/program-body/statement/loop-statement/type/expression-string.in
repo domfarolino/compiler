@@ -1,0 +1,11 @@
+program dominic is
+
+  string expression;
+
+begin
+
+  for (expression := "dom"; expression)
+    expression := "farolino";
+  end for;
+
+end program.

@@ -1,0 +1,13 @@
+program dominic is
+
+  bool expression;
+
+begin
+
+  expression := true;
+
+  if (expression) then
+    expression := false;
+  end if;
+
+end program.

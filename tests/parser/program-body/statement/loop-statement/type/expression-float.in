@@ -1,0 +1,11 @@
+program dominic is
+
+  float expression;
+
+begin
+
+  for (expression := 10.24; expression)
+    expression := 11.24;
+  end for;
+
+end program.

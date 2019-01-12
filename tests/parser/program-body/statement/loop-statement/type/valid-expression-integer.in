@@ -1,0 +1,11 @@
+program dominic is
+
+  integer expression;
+
+begin
+
+  for (expression := 10; expression)
+    expression := 11;
+  end for;
+
+end program.

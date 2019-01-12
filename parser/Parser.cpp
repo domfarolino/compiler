@@ -34,15 +34,17 @@
  * because it did not exist. This seems like less checks, but I could be wrong.
  */
 
-// TODO(domfarolino): Factor this out as a part of
+// TODO(domfarolino): Factor these out as a part of
 // https://github.com/domfarolino/compiler/issues/26.
 // Implements
 // https://docs.google.com/document/d/1QrD3HN5rHX-3zrShlq4g6sQgU0hXnOqtfcCx6OqqNNc/edit#heading=h.ilfzxw1fez7p.
 bool IsArrayIndex(const SymbolRecord& symbolRecord) {
-  if (symbolRecord.type != SymbolType::Integer)
-    return false;
+  return symbolRecord.type == SymbolType::Integer;
+}
 
-  return true;
+bool IsBooleanEquivalent(const SymbolRecord& symbolRecord) {
+  return symbolRecord.type == SymbolType::Bool ||
+         symbolRecord.type == SymbolType::Integer;
 }
 
 Parser::Parser(Lexer& inLexer, ScopeManager &inScopes, bool inSymbolInsight):
@@ -952,6 +954,13 @@ bool Parser::LoopStatement() {
     return false;
   }
 
+  if (!IsBooleanEquivalent(expressionSymbol)) {
+    QueueTypeError("Loop condition must be a boolean or boolean equivalent, " +
+                   std::string("not ") +
+                   SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type));
+    return false;
+  }
+
   // for ( <assignment_statement> ; <expression>
   if (!CheckTokenType(TokenType::TRightParen)) {
     QueueExpectedTokenError("Expected ')' after expression in for loop statement");
@@ -1004,6 +1013,12 @@ bool Parser::IfStatement() {
   if (!Expression(expressionSymbol)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
       QueueExpectedTokenError("Expected expression in if statement after '('");
+    return false;
+  }
+
+  if (!IsBooleanEquivalent(expressionSymbol)) {
+    QueueTypeError("If statement must be a boolean or boolean equivalent, not " +
+                   SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type));
     return false;
   }
 
