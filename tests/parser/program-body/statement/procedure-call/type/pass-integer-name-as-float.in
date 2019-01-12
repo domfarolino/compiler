@@ -1,0 +1,10 @@
+program dominic is
+  integer myInt;
+
+  procedure fn(float arg1 in)
+  begin
+  end procedure;
+
+begin
+  fn(myInt);
+end program.

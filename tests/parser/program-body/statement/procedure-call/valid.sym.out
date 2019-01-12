@@ -10,7 +10,7 @@ procedure              fn          isGlobal:     -- paramType:  None
 +--------Symbol table--------+
 procedure              fn          isGlobal:     -- paramType:  None
    string        myString          isGlobal:     -- paramType:  None
-  integer         myFloat          isGlobal:     -- paramType:  None
+    float         myFloat          isGlobal:     -- paramType:  None
      char          myChar          isGlobal:     -- paramType:  None
   integer           myInt          isGlobal:     -- paramType:  None
 +--------End symbol table----+

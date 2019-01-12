@@ -1,0 +1,11 @@
++--------Symbol table--------+
+    float            arg1          isGlobal:     -- paramType:    In
+procedure              fn          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
++--------Symbol table--------+
+procedure              fn          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
+Program compiled successfully
+[1;31m[0m

@@ -1,6 +1,6 @@
 program dominic is
   integer myInt;
-  integer myFloat;
+  float myFloat;
   string myString;
   char myChar;
 

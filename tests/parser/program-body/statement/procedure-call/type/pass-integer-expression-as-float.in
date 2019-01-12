@@ -1,0 +1,8 @@
+program dominic is
+  procedure fn(float arg1 in)
+  begin
+  end procedure;
+
+begin
+  fn(10 + 11);
+end program.

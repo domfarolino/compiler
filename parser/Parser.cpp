@@ -1110,10 +1110,10 @@ bool Parser::ProcedureCall(std::string& identifier) {
   //     - This is already tested by AssignmentStatement's Destination call.
   //   2.) Any names used as arguments are valid symbols                     ✅
   //   3.) The argument list length matches the stored parameter list length ✅
-  //   4.) Each argument type matches the expected type                      ❌
+  //   4.) Each argument type matches the expected type                      ✅
   // TODO(domfarolino): If anything is wrong with the above conditions, errors
-  // must be displayed in the above order. This needs tested
-  // (https://github.com/domfarolino/compiler/issues/24).
+  // must be displayed in the above order. This needs tested; See
+  // https://github.com/domfarolino/compiler/issues/24.
 
   // <identifier>
   if (!CheckTokenType(TokenType::TLeftParen)) {
@@ -1126,7 +1126,7 @@ bool Parser::ProcedureCall(std::string& identifier) {
   // ArgumentList() returned false only because it didn't exist, we can't let
   // that make us return false here, since the rest of ProcedureCall existed
   // just fine. We only want to propagate errors.
-  std::vector<std::pair<std::string, SymbolRecord>> argumentVec;
+  std::vector<SymbolRecord> argumentVec;
   int errorQueueSizeSnapshot = errorQueue_.size();
   if (!ArgumentList(argumentVec) && errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
@@ -1146,6 +1146,23 @@ bool Parser::ProcedureCall(std::string& identifier) {
     return false;
   }
 
+  // Assert: |argumentVec.size()| == |procedureSymbol->params.size()|.
+  // Perform the type checking now (4).
+  // "The type signatures of a procedures arguments must match exactly their
+  // parameter declaration."
+  for (int i = 0; i < argumentVec.size(); ++i) {
+    SymbolType argType = argumentVec[i].type,
+               paramType = procedureSymbol->params[i].second.type;
+    if (argType != paramType) {
+      QueueTypeError("Procedure '" + identifier + "' argument at position " +
+                     std::to_string(i + 1) + " of type " +
+                     SymbolRecord::SymbolTypeToDebugString(argType) +
+                     " does not match corresponding parameter of type " +
+                     SymbolRecord::SymbolTypeToDebugString(paramType));
+      return false;
+    }
+  }
+
   // <identifier> (...
   if (!CheckTokenType(TokenType::TRightParen)) {
     QueueExpectedTokenError("Expected ')' after argument list");
@@ -1157,7 +1174,7 @@ bool Parser::ProcedureCall(std::string& identifier) {
 }
 
 // <argument_list> ::= <expression> , <argument_list> | <expression>
-bool Parser::ArgumentList(std::vector<std::pair<std::string, SymbolRecord>>& argumentVec) {
+bool Parser::ArgumentList(std::vector<SymbolRecord>& argumentVec) {
   // The language allows empty argument lists, so Expression() could have
   // returned false because it didn't exist, or because it failed to parse.
   // If it failed to parse, Expression will take care of queueing an error.
@@ -1167,7 +1184,7 @@ bool Parser::ArgumentList(std::vector<std::pair<std::string, SymbolRecord>>& arg
 
   // TODO(domfarolino): Make this and the below instance actually push_back the
   // expression information instead of just placeholder info for length.
-  argumentVec.push_back(std::make_pair("", SymbolRecord()));
+  argumentVec.push_back(expressionSymbol);
 
   int errorQueueSizeSnapshot = errorQueue_.size();
   while (CheckTokenType(TokenType::TComma)) {
@@ -1178,7 +1195,7 @@ bool Parser::ArgumentList(std::vector<std::pair<std::string, SymbolRecord>>& arg
       return false;
     }
 
-    argumentVec.push_back(std::make_pair("", SymbolRecord()));
+    argumentVec.push_back(expressionSymbol);
   }
 
   return true;

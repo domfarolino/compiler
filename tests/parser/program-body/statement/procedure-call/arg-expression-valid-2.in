@@ -6,5 +6,5 @@ program dominic is
 
 begin
   domFarolino := 22;
-  fn(domFarolino * (domFarolino), (11.11 * 12) + 13, (14 & (15 | 18)), "domfarolino", 'd');
+  fn(domFarolino * (domFarolino), (11.11 * 12) + 13, (14 <= 18), "domfarolino", 'd');
 end program.
