@@ -77,11 +77,13 @@ bool Parser::CheckTokenType(TokenType expectedTokenType) {
 
 // Queues a plain error message to the error queue, for later displaying.
 void Parser::QueueError(std::string inErrorString) {
-  errorQueue_.push("Line " + std::to_string(lexer_.lineNumber) + ": " + inErrorString);
+  errorQueue_.push("Line " + std::to_string(lexer_.lineNumber) + ": " +
+                   inErrorString);
 }
 
 void Parser::QueueExpectedTokenError(std::string inErrorString) {
-  errorQueue_.push("Line " + std::to_string(lexer_.lineNumber) + ": " + inErrorString + ", but got: '" + token_.lexeme + "'");
+  errorQueue_.push("Line " + std::to_string(lexer_.lineNumber) + ": " +
+                   inErrorString + ", but got: '" + token_.lexeme + "'");
 }
 
 // Queues a regular error, but stops the code generator from generating code.
@@ -284,7 +286,7 @@ bool Parser::Name(std::string& identifier, SymbolRecord& symbolRecord) {
 
     if (!IsArrayIndex(expressionSymbol)) {
       QueueTypeError("Array index must be an integer type, but got a " +
-                      SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type));
+                     SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type));
       return false;
     }
 
@@ -300,7 +302,8 @@ bool Parser::Name(std::string& identifier, SymbolRecord& symbolRecord) {
   return true;
 }
 
-// <declaration> ::= [ global ] <procedure_declaration> | [ global ] <variable_declaration>
+// <declaration> ::= [ global ] <procedure_declaration> |
+//                   [ global ] <variable_declaration>
 bool Parser::Declaration() {
   std::string identifier;
   SymbolRecord symbolRecord;
@@ -320,7 +323,8 @@ bool Parser::Declaration() {
     // The caller of VariableDeclaration is responsible for inserting its
     // symbol into the current scope, hence why we have this conditional.
     if (!scopeManager_.insert(identifier, symbolRecord)) {
-      QueueSymbolError("Symbol '" + identifier + "' already exists, cannot redeclare");
+      QueueSymbolError("Symbol '" + identifier +
+                       "' already exists, cannot redeclare");
       return false;
     }
 
@@ -331,8 +335,10 @@ bool Parser::Declaration() {
   // did not exist. Either way, we return false so the caller knows it shouldn't
   // look for a semicolon. The caller will determine whether or not it should
   // continue parsing given the error queue size snapshot.
-  if (global)
-    QueueExpectedTokenError("Expected procedure or variable declaration after 'global'");
+  if (global) {
+    QueueExpectedTokenError("Expected procedure or variable declaration " +
+                            std::string("after 'global'"));
+  }
 
   return false;
 }
@@ -372,7 +378,8 @@ bool Parser::Statement() {
 }
 
 // <assignment_statement> ::= <destination> := <expression>
-bool Parser::AssignmentStatement(std::string& identifier, bool& validIdentifier) {
+bool Parser::AssignmentStatement(std::string& identifier,
+                                 bool& validIdentifier) {
   SymbolRecord destinationSymbol;
   // <assignment_statement> is not required, as up the chain it is part of a
   // (<statement>;)*, so if we fail to find the first token we cannot queue
@@ -382,7 +389,8 @@ bool Parser::AssignmentStatement(std::string& identifier, bool& validIdentifier)
 
   // <destination>
   if (!CheckTokenType(TokenType::TColonEq)) {
-    QueueExpectedTokenError("Expected ':=' after destination in assignment statement");
+    QueueExpectedTokenError("Expected ':=' after destination in assignment " +
+                            std::string("statement"));
     return false;
   }
 
@@ -391,14 +399,19 @@ bool Parser::AssignmentStatement(std::string& identifier, bool& validIdentifier)
   SymbolRecord expressionSymbol;
   if (!Expression(expressionSymbol)) {
     // Only queue an error if Expression didn't already (sometimes it does!).
-    if (errorQueueSizeSnapshot == errorQueue_.size())
-      QueueExpectedTokenError("Expected expression for destination in assignment statement");
+    if (errorQueueSizeSnapshot == errorQueue_.size()) {
+      QueueExpectedTokenError("Expected expression for destination in " +
+                              std::string("assignment statement"));
+
+    }
+
     return false;
   }
 
   // Both-are-or-are-not-arrays check.
   if (destinationSymbol.isArray != expressionSymbol.isArray) {
-    QueueTypeError("Assignment statement target and expression array-ness must match");
+    QueueTypeError("Assignment statement target and expression array-ness " +
+                   std::string("must match"));
     return false;
   }
 
@@ -411,7 +424,8 @@ bool Parser::AssignmentStatement(std::string& identifier, bool& validIdentifier)
         rhsSize = std::stoi(expressionSymbol.upperBound) -
                   std::stoi(expressionSymbol.lowerBound);
     if (lhsSize != rhsSize) {
-      QueueTypeError("Assignment statement target and expression arrays must be of the same length");
+      QueueTypeError("Assignment statement target and expression arrays must " +
+                     std::string("be of the same length"));
       return false;
     }
   }
@@ -419,10 +433,14 @@ bool Parser::AssignmentStatement(std::string& identifier, bool& validIdentifier)
   // TODO(domfarolino): Factor this out
   // https://github.com/domfarolino/compiler/issues/26.
   if (destinationSymbol.type != expressionSymbol.type && !(
-       (destinationSymbol.type == SymbolType::Integer && expressionSymbol.type == SymbolType::Float) ||
-       (destinationSymbol.type == SymbolType::Float && expressionSymbol.type == SymbolType::Integer) ||
-       (destinationSymbol.type == SymbolType::Integer && expressionSymbol.type == SymbolType::Bool) ||
-       (destinationSymbol.type == SymbolType::Bool && expressionSymbol.type == SymbolType::Integer)
+       (destinationSymbol.type == SymbolType::Integer &&
+        expressionSymbol.type == SymbolType::Float) ||
+       (destinationSymbol.type == SymbolType::Float &&
+        expressionSymbol.type == SymbolType::Integer) ||
+       (destinationSymbol.type == SymbolType::Integer &&
+        expressionSymbol.type == SymbolType::Bool) ||
+       (destinationSymbol.type == SymbolType::Bool &&
+        expressionSymbol.type == SymbolType::Integer)
      )) {
     QueueTypeError("Assignment statement target (" +
                    SymbolRecord::SymbolTypeToDebugString(destinationSymbol.type) +
@@ -466,7 +484,8 @@ bool Parser::Destination(std::string& identifier,
   // support for arrays.
   if (CheckTokenType(TokenType::TLeftBracket)) {
     if (!destinationSymbol.isArray) {
-      QueueSymbolError("Cannot index into non-array destination '" + identifier  + "'");
+      QueueSymbolError("Cannot index into non-array destination '" +
+                       identifier + "'");
       return false;
     }
 
@@ -478,8 +497,11 @@ bool Parser::Destination(std::string& identifier,
     // <identifier> [
     SymbolRecord expressionSymbol;
     if (!Expression(expressionSymbol)) {
-      if (errorQueueSizeSnapshot == errorQueue_.size())
-        QueueExpectedTokenError("Expected expression after '[' in assignment statement");
+      if (errorQueueSizeSnapshot == errorQueue_.size()) {
+        QueueExpectedTokenError("Expected expression after '[' in assignment " +
+                                std::string("statement"));
+      }
+
       return false;
     }
 
@@ -491,7 +513,8 @@ bool Parser::Destination(std::string& identifier,
 
     // <identifier> [ <expression>
     if (!CheckTokenType(TokenType::TRightBracket)) {
-      QueueExpectedTokenError("Expected ']' after expression in assignment destination");
+      QueueExpectedTokenError("Expected ']' after expression in assignment " +
+                              std::string("destination"));
       return false;
     }
   }
@@ -814,7 +837,9 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
     // Minus should not apply to array-types currently. See
     // https://github.com/domfarolino/compiler/issues/35.
     if (minus && symbolRecord.isArray) {
-      QueueTypeError("Minus (-) cannot be applied to array symbols. This may change however, see https://github.com/domfarolino/compiler/issues/35");
+      QueueTypeError("Minus (-) cannot be applied to array symbols. This may " +
+                     std::string("change however, see ") +
+                     std::string("https://github.com/domfarolino/compiler/issues/35"));
       return false;
     }
 
@@ -857,7 +882,9 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
     // Minus should not apply to array-types currently. See
     // https://github.com/domfarolino/compiler/issues/35.
     if (minus && symbolRecord.isArray) {
-      QueueTypeError("Minus (-) cannot be applied to an '( expression )' that is an array. This may change however, see https://github.com/domfarolino/compiler/issues/35");
+      QueueTypeError("Minus (-) cannot be applied to an '( expression )' " +
+                     std::string("that is an array. This may change ") + 
+                     std::string("however, see https://github.com/domfarolino/compiler/issues/35"));
       return false;
     }
 
@@ -885,7 +912,9 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
   return false;
 }
 
-// <loop_statement> ::= for ( <assignment_statement> ; <expression> ) ( <statement> ; )* end for
+// <loop_statement> ::= for ( <assignment_statement> ; <expression> )
+//                        ( <statement> ; )*
+//                      end for
 bool Parser::LoopStatement() {
   // <loop_statement> is not required; cannot queue error if first token is not
   // found.
@@ -951,7 +980,12 @@ bool Parser::LoopStatement() {
   return true;
 }
 
-// <if_statement> ::= if ( <expression> ) then ( <statement> ; )+ [ else ( <statement> ; )+ ] end if
+// <if_statement> ::= if ( <expression> ) then
+//                      ( <statement> ; )+
+//                    [ else
+//                      ( <statement> ; )+
+//                    ]
+//                    end if
 bool Parser::IfStatement() {
   // <if_statement> is not required; cannot queue error if first token is not
   // found.
@@ -1187,7 +1221,8 @@ bool Parser::ProcedureDeclaration(std::string& identifier, SymbolRecord& symbolR
 }
 
 // <procedure_header> :: = procedure <identifier> ( [<parameter_list>] )
-bool Parser::ProcedureHeader(std::string& identifier, std::vector<std::pair<std::string, SymbolRecord>>& parameters) {
+bool Parser::ProcedureHeader(std::string& identifier,
+                             std::vector<std::pair<std::string, SymbolRecord>>& parameters) {
   // A <procedure_header> doesn't always have to exist (as up the chain it is
   // eventually a (<declaration>;)*, which can appear no times), so if the first
   // terminal of a production like this, we have to let our caller decide
@@ -1318,7 +1353,8 @@ bool Parser::ProcedureBody() {
   return true;
 }
 
-// <variable_declaration> ::= <type_mark> <identifier> [ [ <lower_bound> “:” <upper_bound> ] ]
+// <variable_declaration> ::= <type_mark> <identifier>
+//                              [ [ <lower_bound> “:” <upper_bound> ] ]
 bool Parser::VariableDeclaration(std::string& identifier, SymbolRecord& symbolRecord) {
   // Can't report error if TypeMark was not found, because VariableDeclaration
   // isn't always required. Caller will decide whether a VD that doesn't exist
