@@ -56,6 +56,7 @@ private:
   bool LoopStatement();
   bool IfStatement();
   bool ProcedureCall(std::string&);
+  bool ReturnStatement();
   bool ArgumentList(std::vector<SymbolRecord>&);
   bool ProcedureDeclaration(std::string&, SymbolRecord&);
   bool ProcedureHeader(std::string&, std::vector<std::pair<std::string, SymbolRecord>>&);

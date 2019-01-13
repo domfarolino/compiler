@@ -362,7 +362,8 @@ bool Parser::Statement() {
 
   std::string identifier;
   bool validIdentifier = true;
-  if (AssignmentStatement(identifier, validIdentifier)) return true;
+  if (AssignmentStatement(identifier, validIdentifier))
+    return true;
   else if (errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
 
@@ -374,9 +375,10 @@ bool Parser::Statement() {
   //      queued error (because these productions are not mandatory)
   //  2.) The next token was a valid identifier, but the symbol associated with
   //      it was type procedure, and therefore ProcedureCall must handle it
-  if (validIdentifier && ProcedureCall(identifier)) return true;
+  if (validIdentifier && ProcedureCall(identifier))
+    return true;
 
-  return false;
+  return ReturnStatement();
 }
 
 // <assignment_statement> ::= <destination> := <expression>
@@ -1171,6 +1173,11 @@ bool Parser::ProcedureCall(std::string& identifier) {
 
   // <identifier> (...)
   return true;
+}
+
+// <return_statement> ::= return
+bool Parser::ReturnStatement() {
+  return CheckTokenType(TokenType::TReturn);
 }
 
 // <argument_list> ::= <expression> , <argument_list> | <expression>

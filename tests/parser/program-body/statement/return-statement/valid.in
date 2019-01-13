@@ -1,0 +1,10 @@
+program dominic is
+begin
+
+  if (true) then
+    return;
+  else
+    return;
+  end if;
+
+end program.
