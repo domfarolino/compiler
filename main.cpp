@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     std::cout << "\033[1;34mStarting up in --lexer-only mode! \033[0m" << std::endl;
     while (!lexer.isDone()) lexer.nextToken();
   } else {
-    Parser parser(lexer, scopeManager, symbolInsight);
+    Parser parser(argv[1], lexer, scopeManager, symbolInsight);
   }
 
   return 0;

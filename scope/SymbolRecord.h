@@ -26,17 +26,23 @@ public:
 /*
   SymbolRecord(const SymbolRecord& other) {
     type = other.type;
+    isArray = other.isArray;
+    lowerBound = other.lowerBound;
+    upperBound = other.upperBound;
     isGlobal = other.isGlobal;
+    is_literal = other.is_literal;
     paramType = other.paramType;
     params = other.params;
   }
 */
 
-  SymbolRecord(): isArray(false), isGlobal(false), paramType(ParameterType::None) {}
+  SymbolRecord(): isArray(false), isGlobal(false), is_literal(false),
+                  paramType(ParameterType::None) {}
   // TODO(domfarolino): Consider getting rid of this constructor.
   SymbolRecord(SymbolType inType, ParameterType inParamType): type(inType),
                                                               isArray(false),
                                                               isGlobal(false),
+                                                              is_literal(false),
                                                               paramType(inParamType) {
     // A few checks to protect against using SymbolRecord incorrectly in some
     // of the low-hanging-fruit cases.
@@ -51,6 +57,7 @@ public:
   bool isArray;
   std::string lowerBound, upperBound; // Only relevant for arrays; 0 otherwise.
   bool isGlobal; // Only relevant in the outer-most global scope.
+  bool is_literal;
   // TODO(domfarolino): Maybe rename these?
   ParameterType paramType;
   std::vector<std::pair<std::string, SymbolRecord>> params;

@@ -1,0 +1,10 @@
+program dominic is
+  integer myInt;
+
+  procedure fn(integer arg1[0:10] in)
+  begin
+  end procedure;
+
+begin
+  fn(myInt);
+end program.

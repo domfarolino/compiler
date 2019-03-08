@@ -13,10 +13,11 @@ class ScopeManager;
 
 class Parser {
 public:
-  Parser(Lexer&, ScopeManager&, bool);
+  Parser(const std::string&, Lexer&, ScopeManager&, bool);
 
 private:
   // Members
+  std::string program_name_;
   Lexer& lexer_;
   ScopeManager& scopeManager_;
   Token token_;

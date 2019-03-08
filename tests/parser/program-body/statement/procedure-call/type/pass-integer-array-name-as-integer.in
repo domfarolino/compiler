@@ -1,0 +1,10 @@
+program dominic is
+  integer int_array [0: 10];
+
+  procedure fn(integer arg1 in)
+  begin
+  end procedure;
+
+begin
+  fn(int_array);
+end program.

@@ -47,11 +47,16 @@ bool IsBooleanEquivalent(const SymbolRecord& symbolRecord) {
          symbolRecord.type == SymbolType::Integer;
 }
 
-Parser::Parser(Lexer& inLexer, ScopeManager &inScopes, bool inSymbolInsight):
+Parser::Parser(const std::string& program_name, Lexer& inLexer,
+                                                ScopeManager &inScopes,
+                                                bool inSymbolInsight):
+                                              program_name_(program_name),
                                               lexer_(inLexer),
                                               scopeManager_(inScopes),
                                               symbolInsight_(inSymbolInsight) {
   token_ = lexer_.nextToken();
+
+  // TODO(domfarolino): [CODEGEN] Init the CodeGen module.
 
   // Start parsing the program from the <program> production!
   Program();
@@ -90,14 +95,13 @@ void Parser::QueueExpectedTokenError(std::string inErrorString) {
 
 // Queues a regular error, but stops the code generator from generating code.
 void Parser::QueueSymbolError(std::string inErrorString) {
-  // TODO(domfarolino): Tell the code generator to stop generating code.
+  // TODO(domfarolino): [CODEGEN] Call CodeGen::EnterErrorState.
   QueueError(inErrorString);
 }
 
 // Queues a regular error, but stops the code generator from generating code.
 void Parser::QueueTypeError(std::string inErrorString) {
-  // TODO(domfarolino): Tell the code generator to stop generating code, or
-  // maybe do something special.
+  // TODO(domfarolino): [CODEGEN] Call CodeGen::EnterErrorState.
   QueueError(inErrorString);
 }
 
@@ -133,6 +137,9 @@ void Parser::Program() {
     QueueError("Missing period ('.') at the end of program");
   else if (parsedHeader && parsedBody)
     std::cout << "Program compiled successfully" << std::endl;
+
+  // TODO(domfarolino): [CODEGEN] Call CodeGen::PrintBitcode(program_name_), or
+  // the equivalent at the time, to emit an executable etc.
 }
 
 // <program_header> ::= program <identifier> is
@@ -247,8 +254,8 @@ bool Parser::Char(SymbolRecord& symbolRecord) {
 // We can get away without consuming |identifier|, however for error messages in
 // Factor(), it is convenient to have the name of the symbol that may have
 // caused the error.
-bool Parser::Name(std::string& identifier, SymbolRecord& symbolRecord) {
-  // Assert: symbolRecord == nullptr.
+bool Parser::Name(std::string& identifier, SymbolRecord& nameSymbol) {
+  // Assert: nameSymbol == nullptr.
 
   // <name> is not required (see <factor>).
   if (!Identifier(identifier))
@@ -259,24 +266,29 @@ bool Parser::Name(std::string& identifier, SymbolRecord& symbolRecord) {
     return false;
   }
 
-  // Assert: the symbolRecord exists; get it.
-  symbolRecord = SymbolRecord(*scopeManager_.getSymbol(identifier));
+  // Assert: the nameSymbol exists; get it.
+  nameSymbol = SymbolRecord(*scopeManager_.getSymbol(identifier));
 
   // <identifier>
-  // TODO(domfarolino): If |destinationSymbol| is an array symbol that we're
-  // indexing, modify |destinationSymbol| (since it is a copy that we're
-  // "returning" from this method) to be the indexed value, when CodeGen has
-  // support for arrays.
+  // TODO(domfarolino): [CODEGEN] We need to set |nameSymbol|'s Value* to a
+  // reference of the variable we're interested in. This is either:
+  //   - An element of an regular array. See the below todo interested in this.
+  //   - An element of a reference array. See |    |    |        |     |    |.
+  //   - A regular symbol reference (original AllocaInst*) (see second below todo).
+  //   - A reference to a regular symbol reference (original AllocaInst* that
+  //     represents a reference).
   if (CheckTokenType(TokenType::TLeftBracket)) {
-    if (!symbolRecord.isArray) {
+    if (!nameSymbol.isArray) {
       QueueSymbolError("Cannot index into non-array name '" + identifier + "'");
       return false;
     }
 
     int errorQueueSizeSnapshot = errorQueue_.size();
 
-    // Related to the above TODO.
-    symbolRecord.isArray = false;
+    // The |nameSymbol| represents the RHS that we're interested in. If what
+    // we're interested in is an array element, we must ensure |nameSymbol| does
+    // not reflect array-ness copied from the original SymbolRecord.
+    nameSymbol.isArray = false;
 
     // <identifier> [
     SymbolRecord expressionSymbol;
@@ -292,15 +304,52 @@ bool Parser::Name(std::string& identifier, SymbolRecord& symbolRecord) {
       return false;
     }
 
+    // Assert: Since IsArrayIndex(expressionSymbol), |expressionSymbol|'s Value*
+    // must be an integer type. See
+    // http://llvm.org/doxygen/Type_8h_source.html#l00196.
+
+    // TODO(domfarolino): [CODEGEN] The unmodified |nameSymbol| represents an
+    // array, which we'll want to index into with |nameSymbol|'s Value* as the
+    // variable, and |expressionSymbol|'s Value* as the index. The resulting
+    // Value* will be a reference to the original array element. We'll want to
+    // set |nameSymbol|'s Value* to the result of this index. There are two
+    // cases here though:
+    //   - |nameSymbol| is an array, and NOT an Out/InOut reference.
+    //     Handle this indexing with CodeGen::IndexArray(<originalValue>, ...) ❌
+    //   - |nameSymbol| is an array, AND either an Out/InOut reference. Handle
+    //     this indexing with CodeGen::IndexArray(Load(<originalValue>, ...)
+    //     because the Value* is itself a reference reference, so we want to do
+    //     a single load first.                                                ❌
+    // In both cases, we must ensure that |nameSymbol.paramType| = None to
+    // prevent |nameSymbol| from ever being interpreted as a reference variable.
+
     // <identifier> [ <expression>
     if (!CheckTokenType(TokenType::TRightBracket)) {
-      if (errorQueueSizeSnapshot == errorQueue_.size())
+      // TODO(domfarolino): Verify that we do not need this check:
+      //if (errorQueueSizeSnapshot == errorQueue_.size())
         QueueExpectedTokenError("Expected ']' after expression in name");
       return false;
     }
+
+    // <identifier> "[" <expression> "]".
+    // We're returning true here because the code below this block is for when
+    // we _don't_ index.
+    return true;
   }
 
-  // <identifier> [ <expression> ]
+  // TODO(domfarolino): [CODEGEN] As per the comment above the previous
+  // condition block, if we're here, we did not index into an array name, so we
+  // want to get |nameSymbol|'s Value* as a reference, as our final
+  // destination. There are two cases:
+  //   - |nameSymbol| is a regular symbol, NOT Out/InOut.
+  //     Handled by just retrieving |nameSymbol|'s Value* (original AllocaInst*)
+  //     member. This even works with an array name.        ❌
+  //   - |nameSymbol| is a reference symbol, EITHER Out/InOut.
+  //     Handled by performing a single load with CodeGen.  ❌
+  // In both cases, we must ensure that |nameSymbol.paramType| = None to
+  // prevent |nameSymbol| from ever being interpreted as a reference variable.
+
+  // <identifier> (no <expression>!).
   return true;
 }
 
@@ -321,6 +370,13 @@ bool Parser::Declaration() {
     return true;
   else if (errorQueue_.size() == errorQueueSizeSnapshot &&
            VariableDeclaration(identifier, symbolRecord)) {
+
+    // TODO(domfarolino): [CODEGEN] We'll need to CodeGen::CreateVariable() with
+    // with the (appropriate type, |identifier|, |global|,
+    // |symbolRecord.isArray|,
+    // |symbolRecord.upperBound - symbolRecord.lowerBound|), and set
+    // |symbolRecord|'s Value* member to the resulting AllocaInst* Value*.
+    // Maybe CreateVariable after insertion though?
 
     // The caller of VariableDeclaration is responsible for inserting its
     // symbol into the current scope, hence why we have this conditional.
@@ -372,9 +428,9 @@ bool Parser::Statement() {
   // only happens when:
   //  1.) The next token was not a valid identifier, therefore
   //      AssignmentStatment and ProcedureCall will both return false with no
-  //      queued error (because these productions are not mandatory)
+  //      queued error (because these productions are not mandatory).
   //  2.) The next token was a valid identifier, but the symbol associated with
-  //      it was type procedure, and therefore ProcedureCall must handle it
+  //      it was type procedure, and therefore ProcedureCall must handle it.
   if (validIdentifier && ProcedureCall(identifier))
     return true;
 
@@ -390,6 +446,9 @@ bool Parser::AssignmentStatement(std::string& identifier,
   // an error quite yet.
   if (!Destination(identifier, destinationSymbol, validIdentifier))
     return false;
+
+  // At this point, |destinationSymbol|'s Value* has been set by |Destination|.
+  // Can we assert a non-nullptr here?
 
   // <destination>
   if (!CheckTokenType(TokenType::TColonEq)) {
@@ -455,6 +514,24 @@ bool Parser::AssignmentStatement(std::string& identifier,
     return false;
   }
 
+  // TODO(domfarolino): [CODEGEN] (See below).
+  // The type-checking has passed, and we have to CodeGen an assignment now. The
+  // LHS's Value* is the AllocaInst* reference to the LHS symbol, and the RHS is
+  // either the Value* representing the literal RHS value is
+  // |expressionSymbol.is_literal| is true, or the AllocaInst* reference to the
+  // RHS symbol otherwise. Therefore all possible combinations of assignments
+  // are dependent on the RHS possibilities, which are mostly evened out by
+  // ::Name(). In this case, the RHS |expressionSymbol| variants we'll see here
+  // are one of the following:
+  //  - Symbol record whose |is_literal| flag is set, and Value* represents a
+  //    literally-created value. In this case, we have to
+  //    CodeGen::Assign(..., RHSValue).                             ❌
+  //  - Symbol record whose Value* is an AllocaInst* representing the immediate
+  //    address of some variable value. This is the case even for reference
+  //    variables, since ::Name() will perform a single load on reference
+  //    variable AllocaInst*s (hence the "evening out the combinations"). In
+  //    this case, we have to CodeGen::Assign(..., Load(RHSValue)). ❌
+
   // <destination> := <expression>
   return true;
 }
@@ -474,18 +551,29 @@ bool Parser::Destination(std::string& identifier,
     return false;
   }
 
+  // Create a copy of the symbol we're referencing. The symbol we're "returning"
+  // from this function should be this _copy_, because we may be modifying the
+  // the SymbolRecord, and its Value* (as a result of indexing, for example).
   destinationSymbol = SymbolRecord(*scopeManager_.getSymbol(identifier));
 
   // Procedures cannot be destinations. If the author was trying to assign or
-  // index into a procedure, then ProcedureCall will catch that.
+  // index into a procedure, then ProcedureCall will catch that and queue an
+  // appropriate error. We don't queue the error here, because we give
+  // ProcedureCall a chance to check things out.
   if (destinationSymbol.type == SymbolType::Procedure)
     return false;
 
   // <identifier>
-  // TODO(domfarolino): If |destinationSymbol| is an array symbol that we're
-  // indexing, modify |destinationSymbol| (since it is a copy that we're
-  // "returning" from this method) to be the indexed value, when CodeGen has
-  // support for arrays.
+  // TODO(domfarolino): [CODEGEN] We need to set |destinationSymbol|'s Value*
+  // to a reference of the variable we're assigning, so we can actually complete
+  // the assignment in AssignmentStatement. The destination can be one of four
+  // things:
+  //   - ArrayVariable[i] member
+  //   - ReferenceArrayVariable[i] member
+  //   - Variable (aka AllocaInst*)
+  //   - Reference variable (aka AllocaInst* to another AllocaInst*)
+  // The first two are handled in the below block, and the last two are handled
+  // _beneath_ the below block.
   if (CheckTokenType(TokenType::TLeftBracket)) {
     if (!destinationSymbol.isArray) {
       QueueSymbolError("Cannot index into non-array destination '" +
@@ -493,7 +581,10 @@ bool Parser::Destination(std::string& identifier,
       return false;
     }
 
-    // Related to the above TODO.
+    // The |destinationSymbol| represents the LHS of what we're assigning. If
+    // what we're assigning is an array element that we're indexing, we must
+    // ensure |destinationSymbol| does not reflect array-ness copied from the
+    // original SymbolRecord.
     destinationSymbol.isArray = false;
 
     int errorQueueSizeSnapshot = errorQueue_.size();
@@ -515,15 +606,55 @@ bool Parser::Destination(std::string& identifier,
       return false;
     }
 
+    // Assert: Since IsArrayIndex(expressionSymbol), |expressionSymbol|'s Value*
+    // must be an integer type. See
+    // http://llvm.org/doxygen/Type_8h_source.html#l00196.
+
+    // TODO(domfarolino): [CODEGEN] The unmodified |destinationSymbol|
+    // represents an array, which we'll want to index into with
+    // |destinationSymbol|'s Value* as the variable, and |expressionSymbol|'s
+    // Value* as the index. The resulting Value* will be a reference to the
+    // original array element. We'll want to set |destinationSymbol|'s Value* to
+    // the result of this index.
+    // There are two cases here though:
+    //   - |destinationSymbol| is an array, and NOT an Out/InOut reference.
+    //     Handle this indexing with CodeGen::IndexArray(<originalValue>, ...) ❌
+    //   - |destinationSymbol| is an array, AND either an Out/InOut reference.
+    //     Handle this indexing with
+    //     CodeGen::IndexArray(Load(<originalValue>, ...) because the Value* is
+    //     itself a reference reference, so we want to do a single load first. ❌
+    // In both cases, we must ensure that |destinationSymbol.paramType| = None
+    // to prevent |destinationSymbol| from ever being interpreted as a reference
+    // variable.
+
     // <identifier> [ <expression>
     if (!CheckTokenType(TokenType::TRightBracket)) {
       QueueExpectedTokenError("Expected ']' after expression in assignment " +
                               std::string("destination"));
       return false;
     }
+
+    // <identifier> "[" <expression> "]".
+    // We're returning true here because the code below this block is for when
+    // we _don't_ index.
+    return true;
   }
 
-  // <identifier> [ <expression> ]
+  // TODO(domfarolino): [CODEGEN] As per the comment above the previous
+  // condition block, if we're here, we did not index into an array symbol, so
+  // we want to get |destinationSymbol|'s Value* as a reference, as our final
+  // destination. There are two cases:
+  //   - |destinationSymbol| is a regular primitive, NOT In/InOut.
+  //     Handled by just retrieving |destinationSymbol|'s Value* (original
+  //     AllocaInst*) member. This even works with an array destination.   ❌
+  //   - |destinationSymbol| is a reference primitive, either In/InOut.
+  //     Handled by performing a load with CodeGen. (Not implemented yet). ❌
+  // In both cases, we must ensure that |destinationSymbol.paramType| = None
+  // to prevent |destinationSymbol| from ever being interpreted as a reference
+  // variable.
+
+
+  // <identifier> (no <expression>!).
   return true;
 }
 
@@ -847,7 +978,8 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
       return false;
     }
 
-    // Do some processing here.
+    // TODO(domfarolino): If |minus|, I think we need to CodeGen::NegateInteger
+    // or CodeGen::NegateFloat. Otherwise, nothing should be necessary.
     return true;
   } else if (errorQueue_.size() > errorQueueSizeSnapshot) {
     return false;
@@ -855,7 +987,11 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
 
   std::string number;
   if (Number(number, symbolRecord)) {
-    // Do some processing here.
+    // TODO(domfarolino): [CODEGEN] Set |symbolRecord|'s Value* member to the
+    // necessary CodeGen::ProduceInteger or CodeGen::ProduceFloat literal; if
+    // |minus|, CodeGen::NegateX properly.
+
+    symbolRecord.is_literal = true;
     return true;
   }
 
@@ -892,6 +1028,10 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
       return false;
     }
 
+    // TODO(domfarolino): [CODEGEN] If |minus|, we know we're dealing with an
+    // integer or float, and we should CodeGen::NegateX |symbolRecord|'s Value*
+    // appropriately.
+
     // ( <expression> )
     return true;
   }
@@ -901,15 +1041,29 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
     return false;
   }
 
+  // Any successful branch beyond this point will result in |symbolRecord|'s
+  // Value* member being a literal, so we should set its |is_literal| flag
+  // appropriately.
+  symbolRecord.is_literal = true;
+
   if (CheckTokenType(TokenType::TTrue) ||
       CheckTokenType(TokenType::TFalse)) { // Boolean types.
     symbolRecord.type = SymbolType::Bool;
+
+    // TODO(domfarolino): [CODEGEN] Set |symbolRecord|'s Value* to
+    // CodeGen::ProduceBool(...).
     return true;
   } else if (String(symbolRecord)) { // String type.
     symbolRecord.type = SymbolType::String;
+
+    // TODO(domfarolino): [CODEGEN] Set |symbolRecord|'s Value* to
+    // CodeGen::ProduceString(...).
     return true;
   } else if (Char(symbolRecord)) { // Char type.
     symbolRecord.type = SymbolType::Char;
+
+    // TODO(domfarolino): [CODEGEN] Set |symbolRecord|'s Value* to
+    // CodeGen::ProduceChar(...).
     return true;
   }
 
@@ -963,6 +1117,9 @@ bool Parser::LoopStatement() {
     return false;
   }
 
+  // TODO(domfarolino): [CODEGEN] Call CodeGen::For() and
+  // CodeGen::ForCondition() with |expressionSymbol|.
+
   // for ( <assignment_statement> ; <expression>
   if (!CheckTokenType(TokenType::TRightParen)) {
     QueueExpectedTokenError("Expected ')' after expression in for loop statement");
@@ -986,6 +1143,8 @@ bool Parser::LoopStatement() {
     QueueExpectedTokenError("Expected 'end for' after for loop statement");
     return false;
   }
+
+  // TODO(domfarolino): [CODEGEN] Call CodeGen::EndFor().
 
   // for ( <assignment_statement> ; <expression> ) ( <statement> ; )* end for
   return true;
@@ -1024,6 +1183,9 @@ bool Parser::IfStatement() {
     return false;
   }
 
+  // TODO(domfarolino): [CODEGEN] Call CodeGen::IfThen() with
+  // |expressionSymbol|.
+
   // if ( <expression>
   if (!CheckTokenType(TokenType::TRightParen)) {
     QueueExpectedTokenError("Expected ')' after 'if' in if statement");
@@ -1060,6 +1222,8 @@ bool Parser::IfStatement() {
   if (errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
 
+  // TODO(domfarolino): [CODEGEN] CodeGen::Else().
+
   // if ( <expression> ) then ( <statement> ; )+
   if (CheckTokenType(TokenType::TElse)) {
 
@@ -1092,6 +1256,8 @@ bool Parser::IfStatement() {
     QueueExpectedTokenError("Expected 'end if' after if statement");
     return false;
   }
+
+  // TODO(domfarolino): [CODEGEN] CodeGen::EndIf().
 
   // if ( <expression> ) then ( <statement> ; )+ [ else ( <statement> ; )+ ] end if
   return true;
@@ -1155,12 +1321,25 @@ bool Parser::ProcedureCall(std::string& identifier) {
   for (int i = 0; i < argumentVec.size(); ++i) {
     SymbolType argType = argumentVec[i].type,
                paramType = procedureSymbol->params[i].second.type;
+    bool arg_arrayness = argumentVec[i].isArray,
+         param_arrayness = procedureSymbol->params[i].second.isArray;
+
+    // General type check.
     if (argType != paramType) {
       QueueTypeError("Procedure '" + identifier + "' argument at position " +
                      std::to_string(i + 1) + " of type " +
                      SymbolRecord::SymbolTypeToDebugString(argType) +
                      " does not match corresponding parameter of type " +
                      SymbolRecord::SymbolTypeToDebugString(paramType));
+      return false;
+    }
+
+    // Array-ness check.
+    if (arg_arrayness != param_arrayness) {
+      QueueTypeError("Procedure '" + identifier + "' argument at position " +
+                     std::to_string(i + 1) +
+                     "'s array-ness does match corresponding parameter '" +
+                     procedureSymbol->params[i].first + "'");
       return false;
     }
   }
@@ -1171,12 +1350,33 @@ bool Parser::ProcedureCall(std::string& identifier) {
     return false;
   }
 
+  // TODO(domfarolino): [CODEGEN] Call CodeGen::CallFunction() with
+  // |procedureSymbol|'s value as the Function* (we might have to cast to
+  // Function*, or maybe store Function*s separately in SymbolRecord). We also
+  // need to loop through |procedureSymbol->params| and determine what CodeGen
+  // loads we might need to perform on corresponding |argumentVec| args, and use
+  // the results in our CodeGen::CallFunction() call. For example, all of the
+  // arguments in |argumentVec| will either be:
+  //   - AllocaInst*s representing the address of a local variable (goes for
+  //     primitive, array, and single array member). If we're passing this as
+  //     a(n):
+  //     - In primitive or array, we need a single load Value* from CodeGen to ❌
+  //       produce a copy to pass in.
+  //     - Out/InOut primitive or array, we can just pass along the            ❌
+  //       AllocaInst*.
+  //   - Value* if the argument was literally-produced (aka the SymbolRecord is
+  //     a literal anonymous one produced by ::Name()). In this case, we need
+  //     to make sure that the corresponding parameter is In, as we cannot pass
+  //     a literal value by reference.                                         ❌
+
   // <identifier> (...)
   return true;
 }
 
 // <return_statement> ::= return
 bool Parser::ReturnStatement() {
+  // TODO(domfarolino): CodeGen::Return here. Verify that CodeGen can handle
+  // multiple Return() calls without breaking. Tests should be made for this.
   return CheckTokenType(TokenType::TReturn);
 }
 
@@ -1209,9 +1409,11 @@ bool Parser::ArgumentList(std::vector<SymbolRecord>& argumentVec) {
 }
 
 // <procedure_declaration> ::= <procedure_header> <procedure_body>
-bool Parser::ProcedureDeclaration(std::string& identifier, SymbolRecord& symbolRecord) {
+bool Parser::ProcedureDeclaration(std::string& identifier,
+                                  SymbolRecord& symbolRecord) {
   // TODO(domfarolino): Consider making this function take in a global flag
-  // instead of a symbol record, so we can create and add the symbol record here.
+  // instead of a symbol record, so we can create and add the symbol record
+  // here. See https://github.com/domfarolino/compiler/issues/19.
 
   symbolRecord.type = SymbolType::Procedure;
   SymbolTable& outerScope = scopeManager_.getCurrentScopeRef();
@@ -1223,6 +1425,10 @@ bool Parser::ProcedureDeclaration(std::string& identifier, SymbolRecord& symbolR
 
   // Create the final procedure symbol record.
   symbolRecord.params = parameters;
+
+  // TODO(domfarolino): [CODEGEN] CodeGen::CreateFunction() somewhere around
+  // here. CreateFunction() returns a FunctionDeclaration, which contains a
+  // bunch of Value*s that we need to store in the symbol table.
 
   // Enter procedure scope.
   scopeManager_.enterScope();
@@ -1255,13 +1461,15 @@ bool Parser::ProcedureDeclaration(std::string& identifier, SymbolRecord& symbolR
   
   if (symbolInsight_) scopeManager_.printTopScope();
 
+  // TODO(domfarolino): [CODEGEN] CodeGen::EndFunction() around here.
   scopeManager_.leaveScope();
   return parsedBody;
 }
 
 // <procedure_header> :: = procedure <identifier> ( [<parameter_list>] )
 bool Parser::ProcedureHeader(std::string& identifier,
-                             std::vector<std::pair<std::string, SymbolRecord>>& parameters) {
+                             std::vector<std::pair<std::string,
+                                                   SymbolRecord>>& parameters) {
   // A <procedure_header> doesn't always have to exist (as up the chain it is
   // eventually a (<declaration>;)*, which can appear no times), so if the first
   // terminal of a production like this, we have to let our caller decide
@@ -1328,11 +1536,15 @@ bool Parser::Parameter(std::vector<std::pair<std::string, SymbolRecord>>& parame
   // a VD failed to parse. Parameters aren't mandatory, so we only care about
   // the latter case. Our caller will determine whether the VD had an error
   // parsing or not. In this frame, we only care about completion.
+  // [CODEGEN]: |symbolRecord|'s Value* member will be initialized to the
+  // passed in argument's Value* in ProcedureDeclaration.
   std::string identifier;
-  SymbolRecord symbolRecord;
+  SymbolRecord symbolRecord; // Exception to issue #19.
   if (!VariableDeclaration(identifier, symbolRecord))
     return false;
 
+  // Must pull the lexeme of the parameter type out now, since |CheckTokenType|
+  // advances the token. We use |paramTypeString| below.
   std::string paramTypeString = token_.lexeme;
   if (!CheckTokenType(TokenType::TIn) &&
       !CheckTokenType(TokenType::TOut) &&
@@ -1394,7 +1606,8 @@ bool Parser::ProcedureBody() {
 
 // <variable_declaration> ::= <type_mark> <identifier>
 //                              [ [ <lower_bound> “:” <upper_bound> ] ]
-bool Parser::VariableDeclaration(std::string& identifier, SymbolRecord& symbolRecord) {
+bool Parser::VariableDeclaration(std::string& identifier,
+                                 SymbolRecord& symbolRecord) {
   // Can't report error if TypeMark was not found, because VariableDeclaration
   // isn't always required. Caller will decide whether a VD that doesn't exist
   // is an error or not, given the context.
