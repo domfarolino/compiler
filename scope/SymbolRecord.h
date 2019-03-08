@@ -62,6 +62,12 @@ public:
   ParameterType paramType;
   std::vector<std::pair<std::string, SymbolRecord>> params;
 
+  int array_length() {
+    int return_length = std::stoi(upperBound) - std::stoi(lowerBound);
+    // Assert: return_length >= 0.
+    return return_length;
+  }
+
   // TODO(domfarolino): Consider making Parser::TypeMark just return a
   // SymbolType, instead of abstracting conversion to here. The separation of
   // concerns is nice with this, but I don't like that if a grammar change is

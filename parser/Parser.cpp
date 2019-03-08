@@ -374,9 +374,9 @@ bool Parser::Declaration() {
     // TODO(domfarolino): [CODEGEN] We'll need to CodeGen::CreateVariable() with
     // with the (appropriate type, |identifier|, |global|,
     // |symbolRecord.isArray|,
-    // |symbolRecord.upperBound - symbolRecord.lowerBound|), and set
-    // |symbolRecord|'s Value* member to the resulting AllocaInst* Value*.
-    // Maybe CreateVariable after insertion though?
+    // |symbolRecord.array_length()|), and set |symbolRecord|'s Value* member to
+    // the resulting AllocaInst* Value*. Maybe CreateVariable after insertion
+    // though?
 
     // The caller of VariableDeclaration is responsible for inserting its
     // symbol into the current scope, hence why we have this conditional.
@@ -482,11 +482,9 @@ bool Parser::AssignmentStatement(std::string& identifier,
   // TODO(domfarolino): Factor this out
   // https://github.com/domfarolino/compiler/issues/26.
   if (destinationSymbol.isArray) {
-    int lhsSize = std::stoi(destinationSymbol.upperBound) -
-                  std::stoi(destinationSymbol.lowerBound),
-        rhsSize = std::stoi(expressionSymbol.upperBound) -
-                  std::stoi(expressionSymbol.lowerBound);
-    if (lhsSize != rhsSize) {
+    int lhs_size = destinationSymbol.array_length(),
+        rhs_size = expressionSymbol.array_length();
+    if (lhs_size != rhs_size) {
       QueueTypeError("Assignment statement target and expression arrays must " +
                      std::string("be of the same length"));
       return false;
