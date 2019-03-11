@@ -869,9 +869,9 @@ bool Parser::ArithOpPrime(SymbolRecord& leftRelation) {
         // We are definitely promoting to a float here.
 
         if (leftRelation.type != SymbolType::Float) {}
-          // leftRelation.value = CodeGen::IntegerToFloat(leftRelation.value);
+          // leftRelation.value = CodeGen::CastIntegerToFloat(leftRelation.value);
         else {}
-          // rightRelation.value = CodeGen::IntegerToFloat(rightRelation.value);
+          // rightRelation.value = CodeGen::CastIntegerToFloat(rightRelation.value);
 
         if (token_type == TokenType::TPlus) {
           //leftRelation.value = CodeGen::AddFloats(leftRelation.value,
@@ -1029,6 +1029,8 @@ bool Parser::Term(SymbolRecord& term) {
 // <termPrime> ::= * <factor> <termPrime> |
 //                 / <factor> <termPrime> | ε
 bool Parser::TermPrime(SymbolRecord& leftFactor) {
+  // Capture the potential TMultiply or TDivide.
+  TokenType token_type = token_.type;
   if (CheckTokenType(TokenType::TMultiply) ||
       CheckTokenType(TokenType::TDivide)) {
     // * or /
@@ -1054,16 +1056,89 @@ bool Parser::TermPrime(SymbolRecord& leftFactor) {
       return false;
     }
 
+    if (leftFactor.isArray && rightFactor.isArray &&
+        leftFactor.array_length() != rightFactor.array_length()) {
+      QueueTypeError("[Term]: Arrays must be the same length to be " +
+                     std::string("multiplied or divided"));
+      return false;
+    }
+
     // Assert: |leftFactorType|  == (Integer || Float) &&
     //         |rightFactorType| == (Integer || Float).
-    // Promote |leftFactorType| (the type that we'll eventually output to the
-    // caller) to a Float if necessary. This new type and its value will be the
-    // new "leftFactorType" of the next TermPrime.
-    if (leftFactorType == SymbolType::Float ||
-        rightFactorType == SymbolType::Float) {
-      // TODO(domfarolino): [CODEGEN] The left value, aka the ultimate value
-      // we're returning here must be properly casted.
-      leftFactorType = SymbolType::Float;
+
+    // Regardless of what we're dealing with, any non-literal scalars must be
+    // loaded before being used.
+    if (leftFactor.isArray == false && leftFactor.is_literal == false) {}
+      //leftFactor.value = CodeGen::Load(leftFactor.value);
+    if (rightFactor.isArray == false && rightFactor.is_literal == false) {}
+      //rightFactor.value = CodeGen::Load(rightFactor.value);
+
+    if (leftFactor.isArray == false && rightFactor.isArray == false) {
+      // Not dealing with arrays.
+
+      // Simplest case:
+      if (leftFactor.type == rightFactor.type) {
+        if (token_type == TokenType::TMultiply) {
+          /*
+          leftFactor.value = (leftFactor.type == SymbolType::Integer) ?
+                               CodeGen::MultiplyIntegers(leftFactor.value,
+                                                         rightFactor.value):
+                               CodeGen::MultiplyFloats(leftFactor.value,
+                                                       rightFactor.value);
+          */
+        } else {
+          /*
+          leftFactor.value = (leftFactor.type == SymbolType::Integer) ?
+                               CodeGen::DivideIntegers(leftFactor.value,
+                                                       rightFactor.value):
+                               CodeGen::DivideFloats(leftFactor.value,
+                                                     rightFactor.value);
+          */
+        }
+      } else {
+        // We are definitely promoting to a float here.
+
+        if (leftFactor.type != SymbolType::Float) {}
+          // leftFactor.value = CodeGen::CastIntegerToFloat(leftFactor.value);
+        else {}
+          // rightFactor.value = CodeGen::CastIntegerToFloat(rightFactor.value);
+
+        if (token_type == TokenType::TMultiply) {
+          //leftFactor.value = CodeGen::Multiplyloats(leftFactor.value,
+          //                                          rightFactor.value);
+        } else {
+          //leftFactor.value = CodeGen::DivideFloats(leftFactor.value,
+          //                                         rightFactor.value);
+        }
+        leftFactor.type = SymbolType::Float;
+      }
+      // CodeGen module produces literal values when not dealing with arrays.
+      leftFactor.is_literal = true;
+    } else {
+      // At least one array in the mix.
+      // Non-literal scalars have already been loaded.
+      /*
+      leftFactor.value = CodeGen::MultiplyDivideArrayComboImpl(
+                                            leftFactor.value,
+                                            rightFactor.value,
+                                            token_type == TokenType::TMultiply);
+      */
+
+      // Make |leftFactor| aware of potential float promotion.
+      if (leftFactor.type == SymbolType::Float ||
+          rightFactor.type == SymbolType::Float) {
+        leftFactor.type = SymbolType::Float;
+      }
+
+      // Whenever we make a "new" array, the bounds must always be set so that
+      // the length can be computed properly in the future.
+      if (leftFactor.isArray == false) {
+        leftFactor.lowerBound = rightFactor.lowerBound;
+        leftFactor.upperBound = rightFactor.upperBound;
+      }
+
+      leftFactor.isArray = true;
+      leftFactor.is_literal = false;
     }
 
     // * or / <factor>
