@@ -1,0 +1,3 @@
+program dominic is
+  string array [0: 12.133];
+begin end program.

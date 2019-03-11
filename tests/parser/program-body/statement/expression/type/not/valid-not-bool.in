@@ -1,0 +1,9 @@
+program dominic is
+
+  bool target;
+
+begin
+
+  target := not true;
+
+end program.

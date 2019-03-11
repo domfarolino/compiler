@@ -1,0 +1,10 @@
+program dominic is
+
+  integer result;
+  integer int_array[0: 9];
+
+begin
+
+  result := 10 | int_array;
+
+end program.

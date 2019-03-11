@@ -1,0 +1,11 @@
+program dominic is
+
+  integer result[0: 9];
+  integer left[0: 9];
+  integer right[0: 10];
+
+begin
+
+  result := left + right;
+
+end program.

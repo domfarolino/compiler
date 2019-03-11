@@ -1,0 +1,10 @@
+program dominic is
+
+  integer result[0: 10];
+  integer right[0: 9];
+
+begin
+
+  result := 10 & right;
+
+end program.

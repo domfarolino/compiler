@@ -1,3 +1,3 @@
-[1;31mLine 2: Expected number for array lower bound, but got: ':'
+[1;31mLine 2: Expected integer for array lower bound, but got: ':'
 Line 2: Error parsing program body
 [0m

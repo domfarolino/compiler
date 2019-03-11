@@ -670,6 +670,16 @@ bool Parser::Expression(SymbolRecord& expression) {
   if (!ArithOp(expression))
     return false;
 
+  if (notIsPresent && (expression.type != SymbolType::Bool &&
+                       expression.type != SymbolType::Integer)) {
+    QueueTypeError("[Expression]: operator 'not' cannot be affixed to " +
+                   SymbolRecord::SymbolTypeToDebugString(expression.type) +
+                   "s; must only be applied to boolean-equivalent types");
+    return false;
+  }
+
+  // TODO(domfarolino): Figure out how |not| should work.
+
   // [ not ] <arithOp>
   int errorQueueSizeSnapshot = errorQueue_.size();
   if (!ExpressionPrime(expression)) {
@@ -686,22 +696,77 @@ bool Parser::Expression(SymbolRecord& expression) {
 //                       | <arithOp> <expressionPrime> |
 //                       ε
 bool Parser::ExpressionPrime(SymbolRecord& leftArithOp) {
+  // Capture the potential TAmp or TOr.
+  TokenType token_type = token_.type;
   if (CheckTokenType(TokenType::TAmp) || CheckTokenType(TokenType::TOr)) {
     // & or |
     SymbolRecord rightArithOp;
-    SymbolType &leftArithOpType = leftArithOp.type,
-               &rightArithOpType = rightArithOp.type;
+    SymbolType &left_arithop_type = leftArithOp.type,
+               &right_arithop_type = rightArithOp.type;
     if (!ArithOp(rightArithOp))
       return false;
 
-    if (leftArithOpType != SymbolType::Integer ||
-        rightArithOpType != SymbolType::Integer) {
+    if (!(left_arithop_type == SymbolType::Integer &&
+          right_arithop_type == SymbolType::Integer) &&
+        !(left_arithop_type == SymbolType::Bool &&
+          right_arithop_type == SymbolType::Bool)) {
       QueueTypeError("[Expression]: " +
-                     SymbolRecord::SymbolTypeToDebugString(leftArithOpType) +
+                     SymbolRecord::SymbolTypeToDebugString(left_arithop_type) +
                      " and " +
-                     SymbolRecord::SymbolTypeToDebugString(rightArithOpType) +
-                     " cannot be bitwise operands");
+                     SymbolRecord::SymbolTypeToDebugString(right_arithop_type) +
+                     " cannot be bitwise or logical operands");
       return false;
+    }
+
+    if (leftArithOp.isArray && rightArithOp.isArray &&
+        leftArithOp.array_length() != rightArithOp.array_length()) {
+      QueueTypeError("[Expression]: Arrays must be the same length to be " +
+                     std::string("bitwise/logical operands"));
+      return false;
+    }
+
+    // Regardless of what we're dealing with, any non-literal scalars must be
+    // loaded before being used.
+    if (leftArithOp.isArray == false && leftArithOp.is_literal == false) {}
+      //leftArithOp.value = CodeGen::Load(leftArithOp.value);
+    if (rightArithOp.isArray == false && rightArithOp.is_literal == false) {}
+      //rightArithOp.value = CodeGen::Load(rightArithOp.value);
+
+    // If we're at all dealing with arrays, the CodeGen module's returned value
+    // will be the non-LOADed address so that we may index into the array later.
+    // This value is not a literal value, so we must be sure to communicate that
+    // here. Otherwise, if we're dealing with non-arrays, the CodeGen module's
+    // returned value will be a literal value representing the result of the
+    // operation.
+    if (leftArithOp.isArray == false && rightArithOp.isArray == false) {
+      // No arrays.
+      /*
+      leftArithOp.value = (token_type == TokenType::TAmp) ?
+                          CodeGen::AndIntegers(leftArithOp.value,
+                                               rightArithOp.value):
+                          CodeGen::OrIntegers(leftArithOp.value,
+                                              rightArithop.value);
+      */
+      leftArithOp.is_literal = true;
+    } else {
+      // At least one array in the mix.
+      // Non-literal scalars have already been loaded.
+      /*
+      leftArithOp.value = CodeGen::BitwiseArrayComboImpl(
+                                                 leftArithOp.value,
+                                                 rightArithOp.value,
+                                                 token_type == TokenType::TAmp);
+      */
+
+      // Whenever we make a "new" array, the bounds must always be set so that
+      // the length can be computed properly in the future.
+      if (leftArithOp.isArray == false) {
+        leftArithOp.lowerBound = rightArithOp.lowerBound;
+        leftArithOp.upperBound = rightArithOp.upperBound;
+      }
+
+      leftArithOp.isArray = true;
+      leftArithOp.is_literal = false;
     }
 
     // & or | <arithOp>
@@ -725,7 +790,8 @@ bool Parser::ArithOp(SymbolRecord& arithOp) {
   int errorQueueSizeSnapshot = errorQueue_.size();
   if (!ArithOpPrime(arithOp)) {
     if (errorQueueSizeSnapshot == errorQueue_.size())
-      QueueExpectedTokenError("Error parsing expression operator. Expected valid syntax");
+      QueueExpectedTokenError("Error parsing expression operator. Expected " +
+                              std::string("valid syntax"));
     return false;
   }
 
@@ -736,6 +802,8 @@ bool Parser::ArithOp(SymbolRecord& arithOp) {
 // <arithOpPrime> ::= + <relation> <arithOpPrime> |
 //                    - <relation> <arithOpPrime> | ε
 bool Parser::ArithOpPrime(SymbolRecord& leftRelation) {
+  // Capture the potential TPlus or TMinus.
+  TokenType token_type = token_.type;
   if (CheckTokenType(TokenType::TPlus) || CheckTokenType(TokenType::TMinus)) {
     // + or -
     SymbolRecord rightRelation;
@@ -758,13 +826,89 @@ bool Parser::ArithOpPrime(SymbolRecord& leftRelation) {
       return false;
     }
 
+    if (leftRelation.isArray && rightRelation.isArray &&
+        leftRelation.array_length() != rightRelation.array_length()) {
+      QueueTypeError("[ArithOp]: Arrays must be the same length to be added " +
+                     std::string("or subtracted"));
+      return false;
+    }
+
     // Assert: |leftRelationType|  == (Integer || Float) &&
     //         |rightRelationType| == (Integer || Float).
-    if (leftRelationType == SymbolType::Float ||
-        rightRelationType == SymbolType::Float) {
-      // TODO(domfarolino): [CODEGEN] The left value, aka the ultimate value
-      // we're returning here must be properly casted.
-      leftRelationType = SymbolType::Float;
+
+    // Regardless of what we're dealing with, any non-literal scalars must be
+    // loaded before being used.
+    if (leftRelation.isArray == false && leftRelation.is_literal == false) {}
+      //leftRelation.value = CodeGen::Load(leftRelation.value);
+    if (rightRelation.isArray == false && rightRelation.is_literal == false) {}
+      //rightRelation.value = CodeGen::Load(rightRelation.value);
+
+    if (leftRelation.isArray == false && rightRelation.isArray == false) {
+      // Not dealing with arrays.
+
+      // Simplest case:
+      if (leftRelation.type == rightRelation.type) {
+        if (token_type == TokenType::TPlus) {
+          /*
+          leftRelation.value = (leftRelation.type == SymbolType::Integer) ?
+                               CodeGen::AddIntegers(leftRelation.value,
+                                                    rightRelation.value):
+                               CodeGen::AddFloats(leftRelation.value,
+                                                  rightRelation.value);
+          */
+        } else {
+          /*
+          leftRelation.value = (leftRelation.type == SymbolType::Integer) ?
+                               CodeGen::SubtractIntegers(leftRelation.value,
+                                                    rightRelation.value):
+                               CodeGen::SubtractFloats(leftRelation.value,
+                                                  rightRelation.value);
+          */
+        }
+      } else {
+        // We are definitely promoting to a float here.
+
+        if (leftRelation.type != SymbolType::Float) {}
+          // leftRelation.value = CodeGen::IntegerToFloat(leftRelation.value);
+        else {}
+          // rightRelation.value = CodeGen::IntegerToFloat(rightRelation.value);
+
+        if (token_type == TokenType::TPlus) {
+          //leftRelation.value = CodeGen::AddFloats(leftRelation.value,
+          //                                        rightRelation.value);
+        } else {
+          //leftRelation.value = CodeGen::SubtractFloats(leftRelation.value,
+          //                                             rightRelation.value);
+        }
+        leftRelation.type = SymbolType::Float;
+      }
+      // CodeGen module produces literal values when not dealing with arrays.
+      leftRelation.is_literal = true;
+    } else {
+      // At least one array in the mix.
+      // Non-literal scalars have already been loaded.
+      /*
+      leftRelation.value = CodeGen::AddSubtractArrayComboImpl(
+                                                leftRelation.value,
+                                                rightRelation.value,
+                                                token_type == TokenType::TPlus);
+      */
+
+      // Make |leftRelation| aware of potential float promotion.
+      if (leftRelation.type == SymbolType::Float ||
+          rightRelation.type == SymbolType::Float) {
+        leftRelation.type = SymbolType::Float;
+      }
+
+      // Whenever we make a "new" array, the bounds must always be set so that
+      // the length can be computed properly in the future.
+      if (leftRelation.isArray == false) {
+        leftRelation.lowerBound = rightRelation.lowerBound;
+        leftRelation.upperBound = rightRelation.upperBound;
+      }
+
+      leftRelation.isArray = true;
+      leftRelation.is_literal = false;
     }
 
     // + or - <relation>
@@ -1622,13 +1766,15 @@ bool Parser::VariableDeclaration(std::string& identifier,
   }
 
   // <type_mark> <identifier>
+  int error_queue_size_snapshot = errorQueue_.size();
   if (CheckTokenType(TokenType::TLeftBracket)) {
     symbolRecord.isArray = true;
 
     // Declaring an array, lower and upper bound are required.
     // <type_mark> <identifier> [
     if (!LowerOrUpperBound(symbolRecord.lowerBound)) {
-      QueueExpectedTokenError("Expected number for array lower bound");
+      if (error_queue_size_snapshot == errorQueue_.size())
+        QueueExpectedTokenError("Expected integer for array lower bound");
       return false;
     }
 
@@ -1640,7 +1786,8 @@ bool Parser::VariableDeclaration(std::string& identifier,
 
     // <type_mark> <identifier> [ <number> :
     if (!LowerOrUpperBound(symbolRecord.upperBound)) {
-      QueueExpectedTokenError("Expected number for array upper bound");
+      if (error_queue_size_snapshot == errorQueue_.size())
+        QueueExpectedTokenError("Expected integer for array upper bound");
       return false;
     }
 
@@ -1672,10 +1819,17 @@ bool Parser::LowerOrUpperBound(std::string& number) {
   if (CheckTokenType(TokenType::TMinus))
     number += '-';
 
-  SymbolRecord symbolRecord;
-  // TODO(domfarolino): Handle part of the array bounds checking here
-  // https://github.com/domfarolino/compiler/issues/29.
-  return Number(number, symbolRecord);
+  SymbolRecord dummyRecord;
+  if (!Number(number, dummyRecord))
+    return false;
+
+  if (dummyRecord.type == SymbolType::Float) {
+    QueueTypeError("Array lower/upper bounds must be of type 'integer', not " +
+                   SymbolRecord::SymbolTypeToDebugString(dummyRecord.type));
+    return false;
+  }
+
+  return true;
 }
 
 // <number> ::= [0-9][0-9_]*[.[0-9_]*]

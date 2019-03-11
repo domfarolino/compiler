@@ -1,3 +1,3 @@
-[1;31mLine 7: [Expression]: integer and float cannot be bitwise operands
+[1;31mLine 7: [Expression]: integer and float cannot be bitwise or logical operands
 Line 7: Error parsing program body
 [0m
