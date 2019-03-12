@@ -53,4 +53,28 @@ begin
   putString("You inputed:");
   putChar(my_char);
 
+  putString("Now trying an if statement");
+
+  if (my_bool) then
+    putString("if was true");
+  else
+    putString("if was false");
+  end if;
+
+  if (false) then
+    putString("if was true");
+  else
+    putString("if was false");
+  end if;
+
+  if (0) then
+    putString("if was true");
+  else
+    putString("if was false");
+  end if;
+
+  if (1) then
+    putString("if was true, the only option");
+  end if;
+
 end program.

@@ -1551,8 +1551,10 @@ bool Parser::IfStatement() {
     return false;
   }
 
-  // TODO(domfarolino): [CODEGEN] Call CodeGen::IfThen() with
-  // |expressionSymbol|.
+  // [CODEGEN].
+  if (expressionSymbol.is_literal == false)
+    expressionSymbol.value = CodeGen::Load(expressionSymbol.value);
+  CodeGen::IfThen(expressionSymbol.value);
 
   // if ( <expression>
   if (!CheckTokenType(TokenType::TRightParen)) {
@@ -1590,7 +1592,7 @@ bool Parser::IfStatement() {
   if (errorQueue_.size() > errorQueueSizeSnapshot)
     return false;
 
-  // TODO(domfarolino): [CODEGEN] CodeGen::Else().
+  CodeGen::Else();
 
   // if ( <expression> ) then ( <statement> ; )+
   if (CheckTokenType(TokenType::TElse)) {
@@ -1625,7 +1627,7 @@ bool Parser::IfStatement() {
     return false;
   }
 
-  // TODO(domfarolino): [CODEGEN] CodeGen::EndIf().
+  CodeGen::EndIf();
 
   // if ( <expression> ) then ( <statement> ; )+ [ else ( <statement> ; )+ ] end if
   return true;
