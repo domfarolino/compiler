@@ -1,0 +1,12 @@
+program dominic is
+
+  float array[0: 9];
+  integer i;
+
+begin
+
+  for (i := 0; array)
+    i := 1;
+  end for;
+
+end program.

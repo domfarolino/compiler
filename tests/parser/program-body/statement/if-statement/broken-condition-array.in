@@ -1,0 +1,12 @@
+program dominic is
+
+  integer array[0: 9];
+  integer i;
+
+begin
+
+  if (array) then
+    i := 1;
+  end if;
+
+end program.

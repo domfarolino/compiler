@@ -44,6 +44,8 @@ bool IsArrayIndex(const SymbolRecord& symbolRecord) {
 }
 
 bool IsBooleanEquivalent(const SymbolRecord& symbolRecord) {
+  if (symbolRecord.isArray) return false;
+
   return symbolRecord.type == SymbolType::Bool ||
          symbolRecord.type == SymbolType::Integer;
 }
@@ -1481,12 +1483,16 @@ bool Parser::LoopStatement() {
   if (!IsBooleanEquivalent(expressionSymbol)) {
     QueueTypeError("Loop condition must be a boolean or boolean equivalent, " +
                    std::string("not ") +
-                   SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type));
+                   SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type) +
+                   (expressionSymbol.isArray ? " array": ""));
     return false;
   }
 
-  // TODO(domfarolino): [CODEGEN] Call CodeGen::For() and
-  // CodeGen::ForCondition() with |expressionSymbol|.
+  // [CODEGEN].
+  CodeGen::For();
+  if (expressionSymbol.is_literal == false)
+    expressionSymbol.value = CodeGen::Load(expressionSymbol.value);
+  CodeGen::ForCondition(expressionSymbol.value);
 
   // for ( <assignment_statement> ; <expression>
   if (!CheckTokenType(TokenType::TRightParen)) {
@@ -1512,7 +1518,7 @@ bool Parser::LoopStatement() {
     return false;
   }
 
-  // TODO(domfarolino): [CODEGEN] Call CodeGen::EndFor().
+  CodeGen::EndFor();
 
   // for ( <assignment_statement> ; <expression> ) ( <statement> ; )* end for
   return true;
@@ -1547,7 +1553,8 @@ bool Parser::IfStatement() {
 
   if (!IsBooleanEquivalent(expressionSymbol)) {
     QueueTypeError("If statement must be a boolean or boolean equivalent, not " +
-                   SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type));
+                   SymbolRecord::SymbolTypeToDebugString(expressionSymbol.type) + 
+                   (expressionSymbol.isArray ? " array": ""));
     return false;
   }
 
