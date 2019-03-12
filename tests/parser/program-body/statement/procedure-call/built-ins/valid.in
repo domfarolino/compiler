@@ -1,0 +1,27 @@
+program dominic is
+  integer a;
+  float   b;
+  bool    c;
+  char    d;
+  string  e;
+begin
+
+  putInteger(10);
+  putFloat(10.24);
+  putBool(true);
+  putChar('d');
+  putString("dominic");
+
+  putInteger(a);
+  putFloat(b);
+  putBool(c);
+  putChar(d);
+  putString(e);
+
+  getInteger(a);
+  getFloat(b);
+  getBool(c);
+  getChar(d);
+  getString(e);
+
+end program.

@@ -1,7 +1,8 @@
 CXX=g++
 PROGRAMS=main
 UNAME := $(shell uname)
-CFLAGS=-std=c++11 -g
+# TODO(domfarolino): Maybe make this use some environment variable as an LLVM-path prefix?
+CFLAGS= `/usr/local/opt/llvm/bin/llvm-config --cppflags --ldflags --libs all --system-libs core` -std=c++11
 
 all: $(PROGRAMS)
 

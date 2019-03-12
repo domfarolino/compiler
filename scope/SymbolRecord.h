@@ -5,6 +5,10 @@
 #include <stdexcept>
 #include <vector>
 
+namespace llvm {
+  class Value;
+}
+
 enum SymbolType {
   Integer,
   String,
@@ -31,18 +35,21 @@ public:
     upperBound = other.upperBound;
     isGlobal = other.isGlobal;
     is_literal = other.is_literal;
+    built_in = other.built_in;
     paramType = other.paramType;
     params = other.params;
+    value = other.value;
   }
 */
 
   SymbolRecord(): isArray(false), isGlobal(false), is_literal(false),
-                  paramType(ParameterType::None) {}
+                  built_in(false), paramType(ParameterType::None) {}
   // TODO(domfarolino): Consider getting rid of this constructor.
   SymbolRecord(SymbolType inType, ParameterType inParamType): type(inType),
                                                               isArray(false),
                                                               isGlobal(false),
                                                               is_literal(false),
+                                                              built_in(false),
                                                               paramType(inParamType) {
     // A few checks to protect against using SymbolRecord incorrectly in some
     // of the low-hanging-fruit cases.
@@ -58,9 +65,11 @@ public:
   std::string lowerBound, upperBound; // Only relevant for arrays; 0 otherwise.
   bool isGlobal; // Only relevant in the outer-most global scope.
   bool is_literal;
+  bool built_in;
   // TODO(domfarolino): Maybe rename these?
   ParameterType paramType;
   std::vector<std::pair<std::string, SymbolRecord>> params;
+  llvm::Value* value;
 
   int array_length() {
     int return_length = std::stoi(upperBound) - std::stoi(lowerBound);

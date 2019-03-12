@@ -18,8 +18,8 @@ procedure        someProc          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 
 +--------Symbol table--------+
-procedure        someProc          isGlobal:     -- paramType:  None
 procedure       function1          isGlobal:     -- paramType:  None
+procedure        someProc          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 
 Program compiled successfully

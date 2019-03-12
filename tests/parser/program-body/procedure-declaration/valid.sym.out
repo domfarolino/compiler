@@ -13,9 +13,9 @@ procedure       function2          isGlobal: global paramType:  None
 +--------End symbol table----+
 
 +--------Symbol table--------+
+   string        dominic2[10 : 22] isGlobal:     -- paramType:  None
 procedure       function2          isGlobal: global paramType:  None
 procedure       function1          isGlobal:     -- paramType:  None
-   string        dominic2[10 : 22] isGlobal:     -- paramType:  None
   integer         dominic          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 

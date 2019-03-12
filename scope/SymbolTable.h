@@ -40,6 +40,8 @@ public:
   void printTable() {
     std::cout << "+--------Symbol table--------+" << std::endl;
     for (auto it: table_) {
+      // Don't print the built-ins.
+      if (it.second.built_in) continue;
       std::cout << std::setw(10);
       if (it.second.type == SymbolType::Integer)
         std::cout << "integer ";

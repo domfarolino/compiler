@@ -1,0 +1,56 @@
+program dominic is
+  integer my_integer;
+  float my_float;
+  bool my_bool;
+  string my_string;
+  char my_char;
+
+  integer result_integer;
+  float result_float;
+  string result_string;
+  string my_string_array[0: 9];
+begin
+
+  my_integer := 10;
+  my_float := 12.122;
+  my_bool := true;
+  my_string := "my string value woo";
+  my_char := 'D';
+
+  result_integer := my_integer;
+  result_float := my_float;
+  result_string := my_string;
+
+  putInteger(11);
+  putInteger(-result_integer);
+  putFloat(-13.122);
+  putFloat(result_float);
+  putBool(my_bool);
+  putString(my_string);
+  putString(result_string);
+  putChar(my_char);
+  putChar('d');
+
+  putString("Tested the putX methods now will try the getX");
+
+  putString("Enter an integer");
+  getInteger(my_integer);
+  putString("You inputed:");
+  putInteger(my_integer);
+
+  putString("Enter a float");
+  getFloat(my_float);
+  putString("You inputed:");
+  putFloat(my_float);
+
+  putString("Enter a bool 1 or 0");
+  getBool(my_bool);
+  putString("You inputed:");
+  putBool(my_bool);
+
+  putString("Enter a char");
+  getChar(my_char);
+  putString("You inputed:");
+  putChar(my_char);
+
+end program.

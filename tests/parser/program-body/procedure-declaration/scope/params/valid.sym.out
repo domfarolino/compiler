@@ -13,8 +13,8 @@ procedure       function3          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 
 +--------Symbol table--------+
-procedure       function2          isGlobal: global paramType:  None
 procedure       function3          isGlobal:     -- paramType:  None
+procedure       function2          isGlobal: global paramType:  None
 procedure       function1          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 

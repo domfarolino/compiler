@@ -8,9 +8,9 @@ procedure              fn          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 
 +--------Symbol table--------+
-     char            arg5          isGlobal:     -- paramType:  None
    string            arg4          isGlobal:     -- paramType:  None
 procedure              fn          isGlobal:     -- paramType:  None
+     char            arg5          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 
 Program compiled successfully

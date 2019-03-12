@@ -1,6 +1,6 @@
 +--------Symbol table--------+
-  integer             tmp          isGlobal:     -- paramType:  None
   integer          result          isGlobal:     -- paramType:  None
+  integer             tmp          isGlobal:     -- paramType:  None
 +--------End symbol table----+
 
 Program compiled successfully

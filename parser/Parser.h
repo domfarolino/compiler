@@ -13,7 +13,7 @@ class ScopeManager;
 
 class Parser {
 public:
-  Parser(const std::string&, Lexer&, ScopeManager&, bool);
+  Parser(const std::string&, Lexer&, ScopeManager&, bool, bool);
 
 private:
   // Members
@@ -22,6 +22,7 @@ private:
   ScopeManager& scopeManager_;
   Token token_;
   bool symbolInsight_;
+  bool code_gen_;
   std::queue<std::string> errorQueue_;
 
   // Utility Methods
@@ -31,6 +32,7 @@ private:
   void QueueSymbolError(std::string);
   void QueueTypeError(std::string);
   void FlushErrors();
+  void Setup();
 
   // Productions
   void Program();
@@ -38,8 +40,8 @@ private:
   bool ProgramBody();
   bool Identifier();
   bool Identifier(std::string&);
-  bool String(SymbolRecord&);
-  bool Char(SymbolRecord&);
+  bool String(std::string&, SymbolRecord&);
+  bool Char(std::string&, SymbolRecord&);
   bool Name(std::string&, SymbolRecord&);
   bool Declaration();
   bool Statement();

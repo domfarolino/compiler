@@ -4,6 +4,7 @@
 #include <string>
 #include <queue>
 
+#include "../codegen/CodeGen.h"
 #include "../scope/ScopeManager.h"
 #include "../lexer/Lexer.h"
 #include "../lib/Token.h"
@@ -47,20 +48,88 @@ bool IsBooleanEquivalent(const SymbolRecord& symbolRecord) {
          symbolRecord.type == SymbolType::Integer;
 }
 
+// TODO(domfarolino): Maybe we want to move this elsewhere?
+AbstractType SymbolTypeToAbstractType(const SymbolRecord& symbol_record) {
+  bool is_array = symbol_record.isArray;
+
+  if (symbol_record.type == SymbolType::Integer)
+    return (is_array) ? AbstractType::IntegerArray : AbstractType::Integer;
+  else if (symbol_record.type == SymbolType::Float)
+    return (is_array) ? AbstractType::FloatArray : AbstractType::Float;
+  else if (symbol_record.type == SymbolType::Bool)
+    return (is_array) ? AbstractType::BoolArray : AbstractType::Bool;
+  else if (symbol_record.type == SymbolType::Char)
+    return (is_array) ? AbstractType::CharArray : AbstractType::Char;
+  else if (symbol_record.type == SymbolType::String)
+    return (is_array) ? AbstractType::StringArray : AbstractType::String;
+
+  // Assert: Not reached.
+  return AbstractType::Void;
+}
+
 Parser::Parser(const std::string& program_name, Lexer& inLexer,
                                                 ScopeManager &inScopes,
-                                                bool inSymbolInsight):
+                                                bool inSymbolInsight,
+                                                bool code_gen):
                                               program_name_(program_name),
                                               lexer_(inLexer),
                                               scopeManager_(inScopes),
-                                              symbolInsight_(inSymbolInsight) {
+                                              symbolInsight_(inSymbolInsight),
+                                              code_gen_(code_gen) {
   token_ = lexer_.nextToken();
 
-  // TODO(domfarolino): [CODEGEN] Init the CodeGen module.
+  Setup();
 
   // Start parsing the program from the <program> production!
   Program();
   FlushErrors();
+}
+
+// This method is responsible for performing initial CodeGen setup, adding the
+// built-ins to the global scopeadding the built-ins into the ScopeManager, and
+// getting the built-in implementation Value*s from CodeGen.
+void Parser::Setup() {
+  if (code_gen_ == false)
+    CodeGen::EnterErrorState();
+
+  std::vector<Value*> built_in_impls = CodeGen::Setup();
+
+  if (code_gen_) {
+    // TODO(domfarolino): [CODEGEN] Make a CodeGen::CreateMain().
+    std::vector<std::tuple<std::string, AbstractType, int>> mainArguments;
+    CodeGen::CreateFunction("main", AbstractType::Integer, mainArguments);
+  }
+
+  // This will need refactored if future built-ins have non-trivial signatures.
+  std::vector<std::string> built_in_names =
+    {"putInteger", "putFloat", "putBool", "putChar", "putString", "getInteger",
+     "getFloat", "getBool", "getChar", "getString"};
+  std::vector<SymbolType> param_symbol_types =
+    {SymbolType::Integer, SymbolType::Float, SymbolType::Bool, SymbolType::Char,
+    SymbolType::String, SymbolType::Integer, SymbolType::Float,
+    SymbolType::Bool, SymbolType::Char, SymbolType::String};
+  std::vector<ParameterType> param_types =
+    {ParameterType::In, ParameterType::In, ParameterType::In, ParameterType::In,
+    ParameterType::In, ParameterType::Out, ParameterType::Out, ParameterType::Out,
+    ParameterType::Out, ParameterType::Out};
+
+  for (int i = 0; i < built_in_names.size(); ++i) {
+    SymbolRecord built_in_symbol;
+    SymbolRecord param;
+
+    // Build symbols.
+    param.type = param_symbol_types[i];
+    param.paramType = param_types[i];
+
+    built_in_symbol.isGlobal = true; // Not considered global from an LLVM pov.
+    built_in_symbol.built_in = true; // For cleaner symbol table insight.
+    built_in_symbol.type = SymbolType::Procedure;
+    if (i < built_in_impls.size())
+      built_in_symbol.value = built_in_impls[i];
+    built_in_symbol.params = { std::make_pair("arg", param) };
+
+    scopeManager_.insert(built_in_names[i], built_in_symbol);
+  }
 }
 
 // This function compares the most recently received token (stored in token_)
@@ -95,13 +164,13 @@ void Parser::QueueExpectedTokenError(std::string inErrorString) {
 
 // Queues a regular error, but stops the code generator from generating code.
 void Parser::QueueSymbolError(std::string inErrorString) {
-  // TODO(domfarolino): [CODEGEN] Call CodeGen::EnterErrorState.
+  CodeGen::EnterErrorState();
   QueueError(inErrorString);
 }
 
 // Queues a regular error, but stops the code generator from generating code.
 void Parser::QueueTypeError(std::string inErrorString) {
-  // TODO(domfarolino): [CODEGEN] Call CodeGen::EnterErrorState.
+  CodeGen::EnterErrorState();
   QueueError(inErrorString);
 }
 
@@ -138,8 +207,12 @@ void Parser::Program() {
   else if (parsedHeader && parsedBody)
     std::cout << "Program compiled successfully" << std::endl;
 
-  // TODO(domfarolino): [CODEGEN] Call CodeGen::PrintBitcode(program_name_), or
-  // the equivalent at the time, to emit an executable etc.
+  if (code_gen_) {
+    CodeGen::Return(CodeGen::ProduceInteger(0));
+    CodeGen::EndFunction();
+  }
+
+  CodeGen::PrintBitCode(program_name_);
 }
 
 // <program_header> ::= program <identifier> is
@@ -231,7 +304,8 @@ bool Parser::Identifier(std::string& id) {
 }
 
 // <string> :: = "[a-zA-Z0-9 _,;:.']*"
-bool Parser::String(SymbolRecord& symbolRecord) {
+bool Parser::String(std::string& string_value, SymbolRecord& symbolRecord) {
+  string_value = token_.lexeme;
   if (CheckTokenType(TokenType::TString)) {
     symbolRecord.type = SymbolType::String;
     return true;
@@ -241,7 +315,8 @@ bool Parser::String(SymbolRecord& symbolRecord) {
 }
 
 // <char> ::= '[a-zA-Z0-9 _;:."]'
-bool Parser::Char(SymbolRecord& symbolRecord) {
+bool Parser::Char(std::string& char_value, SymbolRecord& symbolRecord) {
+  char_value = token_.lexeme;
   if (CheckTokenType(TokenType::TChar)) {
     symbolRecord.type = SymbolType::String;
     return true;
@@ -343,7 +418,7 @@ bool Parser::Name(std::string& identifier, SymbolRecord& nameSymbol) {
   // destination. There are two cases:
   //   - |nameSymbol| is a regular symbol, NOT Out/InOut.
   //     Handled by just retrieving |nameSymbol|'s Value* (original AllocaInst*)
-  //     member. This even works with an array name.        ❌
+  //     member. This even works with an array name.        ✅
   //   - |nameSymbol| is a reference symbol, EITHER Out/InOut.
   //     Handled by performing a single load with CodeGen.  ❌
   // In both cases, we must ensure that |nameSymbol.paramType| = None to
@@ -371,12 +446,12 @@ bool Parser::Declaration() {
   else if (errorQueue_.size() == errorQueueSizeSnapshot &&
            VariableDeclaration(identifier, symbolRecord)) {
 
-    // TODO(domfarolino): [CODEGEN] We'll need to CodeGen::CreateVariable() with
-    // with the (appropriate type, |identifier|, |global|,
-    // |symbolRecord.isArray|,
-    // |symbolRecord.array_length()|), and set |symbolRecord|'s Value* member to
-    // the resulting AllocaInst* Value*. Maybe CreateVariable after insertion
-    // though?
+    // [CODEGEN].
+    AbstractType variable_type = SymbolTypeToAbstractType(symbolRecord);
+    symbolRecord.value = CodeGen::CreateVariable(variable_type, identifier,
+                                                 global, symbolRecord.isArray,
+                                                 symbolRecord.isArray ?
+                                                 symbolRecord.array_length(): 0);
 
     // The caller of VariableDeclaration is responsible for inserting its
     // symbol into the current scope, hence why we have this conditional.
@@ -512,7 +587,7 @@ bool Parser::AssignmentStatement(std::string& identifier,
     return false;
   }
 
-  // TODO(domfarolino): [CODEGEN] (See below).
+  // [CODEGEN].
   // The type-checking has passed, and we have to CodeGen an assignment now. The
   // LHS's Value* is the AllocaInst* reference to the LHS symbol, and the RHS is
   // either the Value* representing the literal RHS value is
@@ -523,12 +598,21 @@ bool Parser::AssignmentStatement(std::string& identifier,
   // are one of the following:
   //  - Symbol record whose |is_literal| flag is set, and Value* represents a
   //    literally-created value. In this case, we have to
-  //    CodeGen::Assign(..., RHSValue).                             ❌
+  //    CodeGen::Assign(..., RHSValue).                             ✅
   //  - Symbol record whose Value* is an AllocaInst* representing the immediate
   //    address of some variable value. This is the case even for reference
   //    variables, since ::Name() will perform a single load on reference
   //    variable AllocaInst*s (hence the "evening out the combinations"). In
-  //    this case, we have to CodeGen::Assign(..., Load(RHSValue)). ❌
+  //    this case, we have to CodeGen::Assign(..., Load(RHSValue)). ✅
+
+  // As mentioned above, this complements whatever Expression() does, since we
+  // load |is_literal| values here when necessary.
+  if (expressionSymbol.is_literal == false) {
+    expressionSymbol.value = CodeGen::Load(expressionSymbol.value);
+    // I guess we don't really need to set |is_literal| here?
+  }
+
+  CodeGen::Assign(destinationSymbol.value, expressionSymbol.value);
 
   // <destination> := <expression>
   return true;
@@ -638,19 +722,18 @@ bool Parser::Destination(std::string& identifier,
     return true;
   }
 
-  // TODO(domfarolino): [CODEGEN] As per the comment above the previous
-  // condition block, if we're here, we did not index into an array symbol, so
-  // we want to get |destinationSymbol|'s Value* as a reference, as our final
-  // destination. There are two cases:
-  //   - |destinationSymbol| is a regular primitive, NOT In/InOut.
+  // [CODEGEN] As per the comment above the previous condition block, if we're
+  // here, we did not index into an array symbol, so we want to get
+  // |destinationSymbol|'s Value* as a reference, as our final destination.
+  // There are two cases:
+  //   - |destinationSymbol| is a regular primitive, NOT Out/InOut.
   //     Handled by just retrieving |destinationSymbol|'s Value* (original
-  //     AllocaInst*) member. This even works with an array destination.   ❌
-  //   - |destinationSymbol| is a reference primitive, either In/InOut.
+  //     AllocaInst*) member. This even works with an array destination.   ✅
+  //   - |destinationSymbol| is a reference primitive, either In/OutOut.
   //     Handled by performing a load with CodeGen. (Not implemented yet). ❌
   // In both cases, we must ensure that |destinationSymbol.paramType| = None
   // to prevent |destinationSymbol| from ever being interpreted as a reference
   // variable.
-
 
   // <identifier> (no <expression>!).
   return true;
@@ -1246,8 +1329,13 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
       return false;
     }
 
-    // TODO(domfarolino): If |minus|, I think we need to CodeGen::NegateInteger
-    // or CodeGen::NegateFloat. Otherwise, nothing should be necessary.
+    // [CODEGEN].
+    if (minus) {
+      symbolRecord.value = (symbolRecord.type == SymbolType::Integer) ?
+                      CodeGen::NegateInteger(CodeGen::Load(symbolRecord.value)):
+                      CodeGen::NegateFloat(CodeGen::Load(symbolRecord.value));
+      symbolRecord.is_literal = true;
+    }
     return true;
   } else if (errorQueue_.size() > errorQueueSizeSnapshot) {
     return false;
@@ -1255,9 +1343,16 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
 
   std::string number;
   if (Number(number, symbolRecord)) {
-    // TODO(domfarolino): [CODEGEN] Set |symbolRecord|'s Value* member to the
-    // necessary CodeGen::ProduceInteger or CodeGen::ProduceFloat literal; if
-    // |minus|, CodeGen::NegateX properly.
+    double number_val = atof(number.c_str());
+    // [CODEGEN].
+    symbolRecord.value = (symbolRecord.type == SymbolType::Integer) ?
+                         CodeGen::ProduceInteger(number_val):
+                         CodeGen::ProduceFloat(number_val);
+    if (minus) {
+      symbolRecord.value = (symbolRecord.type == SymbolType::Integer) ?
+                           CodeGen::NegateInteger(symbolRecord.value):
+                           CodeGen::NegateFloat(symbolRecord.value);
+    }
 
     symbolRecord.is_literal = true;
     return true;
@@ -1314,24 +1409,29 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
   // appropriately.
   symbolRecord.is_literal = true;
 
+  // These help us grab the corresponding bool, string, or char vals:
+  TokenType token_type = token_.type;
+  std::string string_value;
   if (CheckTokenType(TokenType::TTrue) ||
       CheckTokenType(TokenType::TFalse)) { // Boolean types.
     symbolRecord.type = SymbolType::Bool;
 
-    // TODO(domfarolino): [CODEGEN] Set |symbolRecord|'s Value* to
-    // CodeGen::ProduceBool(...).
+    symbolRecord.value = CodeGen::ProduceBool(token_type == TokenType::TTrue ?
+                                              true: false);
     return true;
-  } else if (String(symbolRecord)) { // String type.
+  } else if (String(string_value, symbolRecord)) { // String type.
     symbolRecord.type = SymbolType::String;
 
-    // TODO(domfarolino): [CODEGEN] Set |symbolRecord|'s Value* to
-    // CodeGen::ProduceString(...).
+    // Assert: |string_value.length() >= 2|.
+    // TODO(domfarolino): We probably just want the lexer to not save the quotes
+    // so we don't have to do substring acrobatics here.
+    symbolRecord.value = CodeGen::ProduceString(string_value.substr(
+                                                  1, string_value.length() - 2)
+                                               );
     return true;
-  } else if (Char(symbolRecord)) { // Char type.
+  } else if (Char(string_value, symbolRecord)) { // Char type.
     symbolRecord.type = SymbolType::Char;
-
-    // TODO(domfarolino): [CODEGEN] Set |symbolRecord|'s Value* to
-    // CodeGen::ProduceChar(...).
+    symbolRecord.value = CodeGen::ProduceChar(string_value[1]);
     return true;
   }
 
@@ -1634,8 +1734,7 @@ bool Parser::ProcedureCall(std::string& identifier) {
   }
 
   // TODO(domfarolino): [CODEGEN] Call CodeGen::CallFunction() with
-  // |procedureSymbol|'s value as the Function* (we might have to cast to
-  // Function*, or maybe store Function*s separately in SymbolRecord). We also
+  // |procedureSymbol|'s value as the Function*. We also
   // need to loop through |procedureSymbol->params| and determine what CodeGen
   // loads we might need to perform on corresponding |argumentVec| args, and use
   // the results in our CodeGen::CallFunction() call. For example, all of the
@@ -1643,14 +1742,26 @@ bool Parser::ProcedureCall(std::string& identifier) {
   //   - AllocaInst*s representing the address of a local variable (goes for
   //     primitive, array, and single array member). If we're passing this as
   //     a(n):
-  //     - In primitive or array, we need a single load Value* from CodeGen to ❌
-  //       produce a copy to pass in.
-  //     - Out/InOut primitive or array, we can just pass along the            ❌
-  //       AllocaInst*.
+  //     - In primitive whose |isArray| and |is_literal| are not set, we need to
+  //     - CodeGen::Load the Value* to produce a copy to pass in.              ✅
+  //     - Out/InOut primitive or array, we can just pass along the
+  //       AllocaInst*. We already know |is_literal| will not be set.          ❌
   //   - Value* if the argument was literally-produced (aka the SymbolRecord is
   //     a literal anonymous one produced by ::Name()). In this case, we need
   //     to make sure that the corresponding parameter is In, as we cannot pass
-  //     a literal value by reference.                                         ❌
+  //     a literal value by reference.                                         ✅
+  std::vector<Value*> arguments;
+  for (int i = 0; i < argumentVec.size(); ++i) {
+    if (procedureSymbol->params[i].second.paramType == ParameterType::In &&
+        argumentVec[i].isArray == false &&
+        argumentVec[i].is_literal == false) {
+      argumentVec[i].value = CodeGen::Load(argumentVec[i].value);
+    }
+
+    arguments.push_back(argumentVec[i].value);
+  }
+
+  CodeGen::CallFunction(procedureSymbol->value, arguments, "call-" + identifier);
 
   // <identifier> (...)
   return true;

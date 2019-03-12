@@ -10,21 +10,24 @@ int main(int argc, char** argv) {
   }
 
   // Command line args can change these, limiting which phases of compiler run.
-  bool lexerOnly = false;
+  bool lexer_only = false;
   bool verbose = false;
-  bool symbolInsight = false;
+  bool symbol_insight = false;
+  bool code_gen = true;
 
   // Process potential command line arguments.
   if (argc >= 3) {
     int i = 2;
     while (i < argc) {
       if (strcmp(argv[i], "--lexer-only") == 0) {
-        lexerOnly = true;
+        lexer_only = true;
         verbose = true;
       } else if (strcmp(argv[i], "--verbose") == 0) {
         verbose = true;
       } else if (strcmp(argv[i], "--symbol-insight") == 0) {
-        symbolInsight = true;
+        symbol_insight = true;
+      } else if (strcmp(argv[i], "--no-codegen") == 0) {
+        code_gen = false;
       }
 
       i++;
@@ -32,13 +35,14 @@ int main(int argc, char** argv) {
   }
 
   Lexer lexer(argv[1], verbose);
-  ScopeManager scopeManager;
+  ScopeManager scope_manager;
 
-  if (lexerOnly) {
+  if (lexer_only) {
     std::cout << "\033[1;34mStarting up in --lexer-only mode! \033[0m" << std::endl;
     while (!lexer.isDone()) lexer.nextToken();
   } else {
-    Parser parser(argv[1], lexer, scopeManager, symbolInsight);
+    // Parser will do everything.
+    Parser parser(argv[1], lexer, scope_manager, symbol_insight, code_gen);
   }
 
   return 0;

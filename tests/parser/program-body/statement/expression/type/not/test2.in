@@ -1,0 +1,9 @@
+program dominic is
+
+  bool target;
+
+begin
+
+  target := not 10 + 1234.43;
+
+end program.

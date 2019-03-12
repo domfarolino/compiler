@@ -1,0 +1,10 @@
++--------Symbol table--------+
+   string               e          isGlobal:     -- paramType:  None
+     char               d          isGlobal:     -- paramType:  None
+    float               b          isGlobal:     -- paramType:  None
+  integer               a          isGlobal:     -- paramType:  None
+     bool               c          isGlobal:     -- paramType:  None
++--------End symbol table----+
+
+Program compiled successfully
+[1;31m[0m
