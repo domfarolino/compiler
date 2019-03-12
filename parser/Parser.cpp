@@ -947,7 +947,10 @@ bool Parser::Relation(SymbolRecord& relation) {
 //                    == <term> <relationPrime> |
 //                    != <term> <relationPrime> | ε
 bool Parser::RelationPrime(SymbolRecord& leftTerm) {
-  // TODO(domfarolino): Maybe factor this out.
+  // Capture the potential relational operator.
+  TokenType token_type = token_.type;
+  // TODO(domfarolino): Maybe factor this out. See
+  // https://github.com/domfarolino/compiler/issues/26.
   if (CheckTokenType(TokenType::TLessThan) ||
       CheckTokenType(TokenType::TGreaterThanEq) ||
       CheckTokenType(TokenType::TLessThanEq) ||
@@ -1003,6 +1006,44 @@ bool Parser::RelationPrime(SymbolRecord& leftTerm) {
       //leftTerm.value = CodeGen::Load(leftTerm.value);
     if (rightTerm.isArray == false && rightTerm.is_literal == false) {}
       //rightTerm.value = CodeGen::Load(right.value);
+
+    if (leftTerm.type == SymbolType::Float ||
+        rightTerm.type == SymbolType::Float) {
+      // Attempt to promote |leftTerm.value| or |rightTerm.value|.
+
+      if (leftTerm.type == SymbolType::Float) {}
+        //leftTerm.value = CodeGen::CastIntegerToFloat(leftTerm.value);
+      if (rightTerm.type == SymbolType::Float) {}
+        //rightTerm.value = CodeGen::CastIntegerToFloat(rightTerm.value);
+
+      if (token_type == TokenType::TLessThan) {}
+        //leftTerm.value = CodeGen::LessThanFloats(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TGreaterThanEq) {}
+        //leftTerm.value = CodeGen::GreaterThanOrEqualFloats(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TLessThanEq) {}
+        //leftTerm.value = CodeGen::LessThanOrEqualFloats(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TGreaterThan) {}
+        //leftTerm.value = CodeGen::GreaterThanFloats(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TCompareEq) {}
+        //leftTerm.value = CodeGen::EqualFloats(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TNotEq) {}
+        //leftTerm.value = CodeGen::NotEqualFloats(leftTerm.value, rightTerm.value);
+    } else {
+      // We're only dealing with integers! This is nice :).
+
+      if (token_type == TokenType::TLessThan) {}
+        //leftTerm.value = CodeGen::LessThanIntegers(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TGreaterThanEq) {}
+        //leftTerm.value = CodeGen::GreaterThanOrEqualIntegers(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TLessThanEq) {}
+        //leftTerm.value = CodeGen::LessThanOrEqualIntegers(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TGreaterThan) {}
+        //leftTerm.value = CodeGen::GreaterThanIntegers(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TCompareEq) {}
+        //leftTerm.value = CodeGen::EqualIntegers(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TNotEq) {}
+        //leftTerm.value = CodeGen::NotEqualIntegers(leftTerm.value, rightTerm.value);
+    }
 
     leftTermType = SymbolType::Bool;
     leftTerm.is_literal = true;
