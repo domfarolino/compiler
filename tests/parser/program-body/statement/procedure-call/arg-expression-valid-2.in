@@ -4,7 +4,10 @@ program dominic is
   begin
   end procedure;
 
+  string arg4;
+  char arg5;
+
 begin
   domFarolino := 22;
-  fn(domFarolino * (domFarolino), (11.11 * 12) + 13, (14 <= 18), "domfarolino", 'd');
+  fn(domFarolino * (domFarolino), (11.11 * 12) + 13, (14 <= 18), arg4, arg5);
 end program.

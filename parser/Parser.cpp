@@ -961,6 +961,12 @@ bool Parser::RelationPrime(SymbolRecord& leftTerm) {
     if (!Term(rightTerm))
       return false;
 
+    if (leftTerm.isArray || rightTerm.isArray) {
+      QueueTypeError("[Relation]: The relational operators are not " +
+                     std::string("implemented for arrays at this time"));
+      return false;
+    }
+
     // At this point, both |leftTermType| and |rightTermType| must be some
     // combination of the following types for a valid relation:
     // Comparison types allowed:
@@ -968,7 +974,7 @@ bool Parser::RelationPrime(SymbolRecord& leftTerm) {
     //  - Bool and {Bool, Integer}           ✅
     //  - Float and {Float, Integer}         ✅
     //  - Char and {Char}                    ✅
-    //  - Float and AboveSet∪{Bool}          ❌ (see issue#25).
+    //  - Float and AboveSet ∪ {Bool}        ❌ (see issue#25).
     if ((leftTermType == SymbolType::Integer &&
           (rightTermType != SymbolType::Integer &&
            rightTermType != SymbolType::Float &&
@@ -991,11 +997,15 @@ bool Parser::RelationPrime(SymbolRecord& leftTerm) {
       return false;
     }
 
-    // TODO(domfarolino): [CODEGEN] The left value (aka ultimate returned value)
-    // must be properly casted to a boolean here.
-    // TODO(domfarolino): [CODEGEN] Cast Bool types to appropriate integers.
-    // |leftTermType|, if not already a Bool, must be casted into one.
+    // Regardless of what we're dealing with, any non-literal scalars must be
+    // loaded before being used.
+    if (leftTerm.isArray == false && leftTerm.is_literal == false) {}
+      //leftTerm.value = CodeGen::Load(leftTerm.value);
+    if (rightTerm.isArray == false && rightTerm.is_literal == false) {}
+      //rightTerm.value = CodeGen::Load(right.value);
+
     leftTermType = SymbolType::Bool;
+    leftTerm.is_literal = true;
 
     // < or >= or ... or != <term>
     return RelationPrime(leftTerm);
@@ -1541,6 +1551,8 @@ bool Parser::ProcedureCall(std::string& identifier) {
     bool arg_arrayness = argumentVec[i].isArray,
          param_arrayness = procedureSymbol->params[i].second.isArray;
 
+    // The below three checks implement
+    // https://github.com/domfarolino/compiler/issues/37.
     // General type check.
     if (argType != paramType) {
       QueueTypeError("Procedure '" + identifier + "' argument at position " +
@@ -1557,6 +1569,19 @@ bool Parser::ProcedureCall(std::string& identifier) {
                      std::to_string(i + 1) +
                      "'s array-ness does match corresponding parameter '" +
                      procedureSymbol->params[i].first + "'");
+      return false;
+    }
+
+    // Literal-ness and reference param check.
+    ParameterType arg_param_type = argumentVec[i].paramType,
+                  param_param_type = procedureSymbol->params[i].second.paramType;
+    bool arg_is_literal = argumentVec[i].is_literal,
+         param_is_literal = procedureSymbol->params[i].second.is_literal;
+    // ParameterType check.
+    if (arg_is_literal && (param_param_type == ParameterType::Out ||
+                           param_param_type == ParameterType::InOut)) {
+      QueueTypeError("Cannot pass a literal value as '" +
+                     procedureSymbol->params[i].first + "' reference param");
       return false;
     }
   }

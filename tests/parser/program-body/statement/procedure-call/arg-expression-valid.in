@@ -3,6 +3,9 @@ program dominic is
   begin
   end procedure;
 
+  string arg4;
+  char arg5;
+
 begin
-  fn(10, (11.11 * 12) + 13, (10 == 4858), "domfarolino", 'd');
+  fn(10, (11.11 * 12) + 13, (10 == 4858), arg4, arg5);
 end program.

@@ -1,0 +1,10 @@
+program dominic is
+
+  bool result[0: 9];
+  bool left[0: 9];
+
+begin
+
+  result := left == false;
+
+end program.
