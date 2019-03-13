@@ -955,10 +955,10 @@ bool Parser::ArithOpPrime(SymbolRecord& leftRelation) {
 
     // Regardless of what we're dealing with, any non-literal scalars must be
     // loaded before being used.
-    if (leftRelation.isArray == false && leftRelation.is_literal == false) {}
-      //leftRelation.value = CodeGen::Load(leftRelation.value);
-    if (rightRelation.isArray == false && rightRelation.is_literal == false) {}
-      //rightRelation.value = CodeGen::Load(rightRelation.value);
+    if (leftRelation.isArray == false && leftRelation.is_literal == false)
+      leftRelation.value = CodeGen::Load(leftRelation.value);
+    if (rightRelation.isArray == false && rightRelation.is_literal == false)
+      rightRelation.value = CodeGen::Load(rightRelation.value);
 
     if (leftRelation.isArray == false && rightRelation.isArray == false) {
       // Not dealing with arrays.
@@ -966,36 +966,32 @@ bool Parser::ArithOpPrime(SymbolRecord& leftRelation) {
       // Simplest case:
       if (leftRelation.type == rightRelation.type) {
         if (token_type == TokenType::TPlus) {
-          /*
           leftRelation.value = (leftRelation.type == SymbolType::Integer) ?
                                CodeGen::AddIntegers(leftRelation.value,
                                                     rightRelation.value):
                                CodeGen::AddFloats(leftRelation.value,
                                                   rightRelation.value);
-          */
         } else {
-          /*
           leftRelation.value = (leftRelation.type == SymbolType::Integer) ?
                                CodeGen::SubtractIntegers(leftRelation.value,
                                                     rightRelation.value):
                                CodeGen::SubtractFloats(leftRelation.value,
                                                   rightRelation.value);
-          */
         }
       } else {
         // We are definitely promoting to a float here.
 
-        if (leftRelation.type != SymbolType::Float) {}
-          // leftRelation.value = CodeGen::CastIntegerToFloat(leftRelation.value);
-        else {}
-          // rightRelation.value = CodeGen::CastIntegerToFloat(rightRelation.value);
+        if (leftRelation.type != SymbolType::Float)
+          leftRelation.value = CodeGen::CastIntegerToFloat(leftRelation.value);
+        else
+          rightRelation.value = CodeGen::CastIntegerToFloat(rightRelation.value);
 
         if (token_type == TokenType::TPlus) {
-          //leftRelation.value = CodeGen::AddFloats(leftRelation.value,
-          //                                        rightRelation.value);
+          leftRelation.value = CodeGen::AddFloats(leftRelation.value,
+                                                  rightRelation.value);
         } else {
-          //leftRelation.value = CodeGen::SubtractFloats(leftRelation.value,
-          //                                             rightRelation.value);
+          leftRelation.value = CodeGen::SubtractFloats(leftRelation.value,
+                                                       rightRelation.value);
         }
         leftRelation.type = SymbolType::Float;
       }
@@ -1004,12 +1000,10 @@ bool Parser::ArithOpPrime(SymbolRecord& leftRelation) {
     } else {
       // At least one array in the mix.
       // Non-literal scalars have already been loaded.
-      /*
       leftRelation.value = CodeGen::AddSubtractArrayComboImpl(
                                                 leftRelation.value,
                                                 rightRelation.value,
                                                 token_type == TokenType::TPlus);
-      */
 
       // Make |leftRelation| aware of potential float promotion.
       if (leftRelation.type == SymbolType::Float ||
@@ -1119,47 +1113,47 @@ bool Parser::RelationPrime(SymbolRecord& leftTerm) {
 
     // Regardless of what we're dealing with, any non-literal scalars must be
     // loaded before being used.
-    if (leftTerm.isArray == false && leftTerm.is_literal == false) {}
-      //leftTerm.value = CodeGen::Load(leftTerm.value);
-    if (rightTerm.isArray == false && rightTerm.is_literal == false) {}
-      //rightTerm.value = CodeGen::Load(right.value);
+    if (leftTerm.isArray == false && leftTerm.is_literal == false)
+      leftTerm.value = CodeGen::Load(leftTerm.value);
+    if (rightTerm.isArray == false && rightTerm.is_literal == false)
+      rightTerm.value = CodeGen::Load(rightTerm.value);
 
     if (leftTerm.type == SymbolType::Float ||
         rightTerm.type == SymbolType::Float) {
       // Attempt to promote |leftTerm.value| or |rightTerm.value|.
 
-      if (leftTerm.type == SymbolType::Float) {}
-        //leftTerm.value = CodeGen::CastIntegerToFloat(leftTerm.value);
-      if (rightTerm.type == SymbolType::Float) {}
-        //rightTerm.value = CodeGen::CastIntegerToFloat(rightTerm.value);
+      if (leftTerm.type == SymbolType::Float)
+        leftTerm.value = CodeGen::CastIntegerToFloat(leftTerm.value);
+      if (rightTerm.type == SymbolType::Float)
+        rightTerm.value = CodeGen::CastIntegerToFloat(rightTerm.value);
 
-      if (token_type == TokenType::TLessThan) {}
-        //leftTerm.value = CodeGen::LessThanFloats(leftTerm.value, rightTerm.value);
-      else if (token_type == TokenType::TGreaterThanEq) {}
-        //leftTerm.value = CodeGen::GreaterThanOrEqualFloats(leftTerm.value, rightTerm.value);
-      else if (token_type == TokenType::TLessThanEq) {}
-        //leftTerm.value = CodeGen::LessThanOrEqualFloats(leftTerm.value, rightTerm.value);
-      else if (token_type == TokenType::TGreaterThan) {}
-        //leftTerm.value = CodeGen::GreaterThanFloats(leftTerm.value, rightTerm.value);
-      else if (token_type == TokenType::TCompareEq) {}
-        //leftTerm.value = CodeGen::EqualFloats(leftTerm.value, rightTerm.value);
-      else if (token_type == TokenType::TNotEq) {}
-        //leftTerm.value = CodeGen::NotEqualFloats(leftTerm.value, rightTerm.value);
+      if (token_type == TokenType::TLessThan)
+        leftTerm.value = CodeGen::LessThanFloats(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TGreaterThanEq)
+        leftTerm.value = CodeGen::GreaterThanOrEqualFloats(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TLessThanEq)
+        leftTerm.value = CodeGen::LessThanOrEqualFloats(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TGreaterThan)
+        leftTerm.value = CodeGen::GreaterThanFloats(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TCompareEq)
+        leftTerm.value = CodeGen::EqualFloats(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TNotEq)
+        leftTerm.value = CodeGen::NotEqualFloats(leftTerm.value, rightTerm.value);
     } else {
       // We're only dealing with integers! This is nice :).
 
-      if (token_type == TokenType::TLessThan) {}
-        //leftTerm.value = CodeGen::LessThanIntegers(leftTerm.value, rightTerm.value);
-      else if (token_type == TokenType::TGreaterThanEq) {}
-        //leftTerm.value = CodeGen::GreaterThanOrEqualIntegers(leftTerm.value, rightTerm.value);
-      else if (token_type == TokenType::TLessThanEq) {}
-        //leftTerm.value = CodeGen::LessThanOrEqualIntegers(leftTerm.value, rightTerm.value);
-      else if (token_type == TokenType::TGreaterThan) {}
-        //leftTerm.value = CodeGen::GreaterThanIntegers(leftTerm.value, rightTerm.value);
-      else if (token_type == TokenType::TCompareEq) {}
-        //leftTerm.value = CodeGen::EqualIntegers(leftTerm.value, rightTerm.value);
-      else if (token_type == TokenType::TNotEq) {}
-        //leftTerm.value = CodeGen::NotEqualIntegers(leftTerm.value, rightTerm.value);
+      if (token_type == TokenType::TLessThan)
+        leftTerm.value = CodeGen::LessThanIntegers(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TGreaterThanEq)
+        leftTerm.value = CodeGen::GreaterThanOrEqualIntegers(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TLessThanEq)
+        leftTerm.value = CodeGen::LessThanOrEqualIntegers(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TGreaterThan)
+        leftTerm.value = CodeGen::GreaterThanIntegers(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TCompareEq)
+        leftTerm.value = CodeGen::EqualIntegers(leftTerm.value, rightTerm.value);
+      else if (token_type == TokenType::TNotEq)
+        leftTerm.value = CodeGen::NotEqualIntegers(leftTerm.value, rightTerm.value);
     }
 
     leftTermType = SymbolType::Bool;
@@ -1236,10 +1230,10 @@ bool Parser::TermPrime(SymbolRecord& leftFactor) {
 
     // Regardless of what we're dealing with, any non-literal scalars must be
     // loaded before being used.
-    if (leftFactor.isArray == false && leftFactor.is_literal == false) {}
-      //leftFactor.value = CodeGen::Load(leftFactor.value);
-    if (rightFactor.isArray == false && rightFactor.is_literal == false) {}
-      //rightFactor.value = CodeGen::Load(rightFactor.value);
+    if (leftFactor.isArray == false && leftFactor.is_literal == false)
+      leftFactor.value = CodeGen::Load(leftFactor.value);
+    if (rightFactor.isArray == false && rightFactor.is_literal == false)
+      rightFactor.value = CodeGen::Load(rightFactor.value);
 
     if (leftFactor.isArray == false && rightFactor.isArray == false) {
       // Not dealing with arrays.
@@ -1247,36 +1241,32 @@ bool Parser::TermPrime(SymbolRecord& leftFactor) {
       // Simplest case:
       if (leftFactor.type == rightFactor.type) {
         if (token_type == TokenType::TMultiply) {
-          /*
           leftFactor.value = (leftFactor.type == SymbolType::Integer) ?
                                CodeGen::MultiplyIntegers(leftFactor.value,
                                                          rightFactor.value):
                                CodeGen::MultiplyFloats(leftFactor.value,
                                                        rightFactor.value);
-          */
         } else {
-          /*
           leftFactor.value = (leftFactor.type == SymbolType::Integer) ?
                                CodeGen::DivideIntegers(leftFactor.value,
                                                        rightFactor.value):
                                CodeGen::DivideFloats(leftFactor.value,
                                                      rightFactor.value);
-          */
         }
       } else {
         // We are definitely promoting to a float here.
 
-        if (leftFactor.type != SymbolType::Float) {}
-          // leftFactor.value = CodeGen::CastIntegerToFloat(leftFactor.value);
-        else {}
-          // rightFactor.value = CodeGen::CastIntegerToFloat(rightFactor.value);
+        if (leftFactor.type != SymbolType::Float)
+          leftFactor.value = CodeGen::CastIntegerToFloat(leftFactor.value);
+        else
+          rightFactor.value = CodeGen::CastIntegerToFloat(rightFactor.value);
 
         if (token_type == TokenType::TMultiply) {
-          //leftFactor.value = CodeGen::Multiplyloats(leftFactor.value,
-          //                                          rightFactor.value);
+          leftFactor.value = CodeGen::MultiplyFloats(leftFactor.value,
+                                                     rightFactor.value);
         } else {
-          //leftFactor.value = CodeGen::DivideFloats(leftFactor.value,
-          //                                         rightFactor.value);
+          leftFactor.value = CodeGen::DivideFloats(leftFactor.value,
+                                                   rightFactor.value);
         }
         leftFactor.type = SymbolType::Float;
       }
@@ -1285,12 +1275,10 @@ bool Parser::TermPrime(SymbolRecord& leftFactor) {
     } else {
       // At least one array in the mix.
       // Non-literal scalars have already been loaded.
-      /*
       leftFactor.value = CodeGen::MultiplyDivideArrayComboImpl(
                                             leftFactor.value,
                                             rightFactor.value,
                                             token_type == TokenType::TMultiply);
-      */
 
       // Make |leftFactor| aware of potential float promotion.
       if (leftFactor.type == SymbolType::Float ||
@@ -1504,6 +1492,12 @@ bool Parser::LoopStatement() {
     return false;
   }
 
+  // [CODEGEN].
+  // We need to ensure that any CodeGeneration that takes place in the obtaining
+  // of the condition, actually takes place inn the loop condition evaluation
+  // block.
+  CodeGen::For();
+
   // for ( <assignment_statement> ;
   SymbolRecord expressionSymbol;
   if (!Expression(expressionSymbol)) {
@@ -1520,8 +1514,6 @@ bool Parser::LoopStatement() {
     return false;
   }
 
-  // [CODEGEN].
-  CodeGen::For();
   if (expressionSymbol.is_literal == false)
     expressionSymbol.value = CodeGen::Load(expressionSymbol.value);
   CodeGen::ForCondition(expressionSymbol.value);

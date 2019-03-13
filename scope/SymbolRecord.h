@@ -72,7 +72,7 @@ public:
   llvm::Value* value;
 
   int array_length() {
-    int return_length = std::stoi(upperBound) - std::stoi(lowerBound);
+    int return_length = std::stoi(upperBound) - std::stoi(lowerBound) + 1;
     // Assert: return_length >= 0.
     return return_length;
   }

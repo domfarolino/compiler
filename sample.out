@@ -27,6 +27,34 @@ if was false
 if was true, the only option
 Now trying for loops
 Loop iteration was executed
+1
+Loop iteration was executed
+2
+Loop iteration was executed
+3
+Loop iteration was executed
+4
+Loop iteration was executed
+5
+Loop iteration was executed
+6
+Loop iteration was executed
+7
+Loop iteration was executed
+8
+Loop iteration was executed
+9
 Now testing out array indexing
 111
 -22
+Now trying out some array acrobatics
+2.000000
+8.000000
+18.000000
+32.000000
+50.000000
+72.000000
+98.000000
+128.000000
+162.000000
+200.000000
