@@ -381,6 +381,8 @@ bool Parser::Name(std::string& identifier, SymbolRecord& nameSymbol) {
       return false;
     }
 
+    // Assert: expressionSymbol.paramType != ParameterType::Out.
+
     // Assert: Since IsArrayIndex(expressionSymbol), |expressionSymbol|'s Value*
     // must be an integer type. See
     // http://llvm.org/doxygen/Type_8h_source.html#l00196.
@@ -392,13 +394,27 @@ bool Parser::Name(std::string& identifier, SymbolRecord& nameSymbol) {
     // set |nameSymbol|'s Value* to the result of this index. There are two
     // cases here though:
     //   - |nameSymbol| is an array, and NOT an Out/InOut reference.
-    //     Handle this indexing with CodeGen::IndexArray(<originalValue>, ...) ❌
+    //     Handle this indexing with CodeGen::IndexArray(<originalValue>, ...) ✅
     //   - |nameSymbol| is an array, AND either an Out/InOut reference. Handle
     //     this indexing with CodeGen::IndexArray(Load(<originalValue>, ...)
     //     because the Value* is itself a reference reference, so we want to do
     //     a single load first.                                                ❌
     // In both cases, we must ensure that |nameSymbol.paramType| = None to
     // prevent |nameSymbol| from ever being interpreted as a reference variable.
+
+    // This allows us indexing with a variable (including Out params, but this
+    // should be tested).
+    if (expressionSymbol.is_literal == false)
+      expressionSymbol.value = CodeGen::Load(expressionSymbol.value);
+
+    if (nameSymbol.paramType == ParameterType::None ||
+        nameSymbol.paramType == ParameterType::In) {
+      nameSymbol.value = CodeGen::IndexArray(nameSymbol.value, expressionSymbol.value);
+    } else {
+      // TODO(domfarolino): Implement the above.
+      //nameSymbol.value = CodeGen::IndexArray(CodeGen::Load(nameSymbol.value),
+      //                            expressionSymbol.value);
+    }
 
     // <identifier> [ <expression>
     if (!CheckTokenType(TokenType::TRightBracket)) {
@@ -702,7 +718,7 @@ bool Parser::Destination(std::string& identifier,
     // the result of this index.
     // There are two cases here though:
     //   - |destinationSymbol| is an array, and NOT an Out/InOut reference.
-    //     Handle this indexing with CodeGen::IndexArray(<originalValue>, ...) ❌
+    //     Handle this indexing with CodeGen::IndexArray(<originalValue>, ...) ✅
     //   - |destinationSymbol| is an array, AND either an Out/InOut reference.
     //     Handle this indexing with
     //     CodeGen::IndexArray(Load(<originalValue>, ...) because the Value* is
@@ -710,6 +726,22 @@ bool Parser::Destination(std::string& identifier,
     // In both cases, we must ensure that |destinationSymbol.paramType| = None
     // to prevent |destinationSymbol| from ever being interpreted as a reference
     // variable.
+
+    // This allows us indexing with a variable (including Out params, but this
+    // should be tested).
+    if (expressionSymbol.is_literal == false)
+      expressionSymbol.value = CodeGen::Load(expressionSymbol.value);
+
+    if (destinationSymbol.paramType == ParameterType::None ||
+        destinationSymbol.paramType == ParameterType::In) {
+      destinationSymbol.value = CodeGen::IndexArray(destinationSymbol.value,
+                                                    expressionSymbol.value);
+    } else {
+      // TODO(domfarolino): Implement the above.
+      //destinationSymbol.value = CodeGen::IndexArray(CodeGen::Load(
+      //                                              destinationSymbol.value),
+      //                                   expressionSymbol.value);
+    }
 
     // <identifier> [ <expression>
     if (!CheckTokenType(TokenType::TRightBracket)) {

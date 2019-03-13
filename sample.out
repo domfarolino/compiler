@@ -1,0 +1,32 @@
+11
+-1111
+-13.122000
+12.122000
+1
+my string value woo
+my string value woo
+D
+d
+Tested the putX methods now will try the getX
+Enter an integer
+You inputed:
+111
+Enter a float
+You inputed:
+122.323000
+Enter a bool 1 or 0
+You inputed:
+1
+Enter a char
+You inputed:
+a
+Now trying if statements
+if was true
+if was false
+if was false
+if was true, the only option
+Now trying for loops
+Loop iteration was executed
+Now testing out array indexing
+111
+-22

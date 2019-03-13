@@ -9,10 +9,12 @@ program dominic is
   integer result_integer;
   float result_float;
   string result_string;
+
+  integer integer_array[0: 9];
   string my_string_array[0: 9];
 begin
 
-  my_integer := 10;
+  my_integer := 1111;
   my_float := 12.122;
   my_bool := true;
   my_string := "my string value woo";
@@ -84,5 +86,11 @@ begin
     putString("Loop iteration was executed");
     my_bool := false;
   end for;
+
+  putString("Now testing out array indexing");
+  integer_array[i] := my_integer;
+  integer_array[1] := -22;
+  putInteger(integer_array[0]);
+  putInteger(integer_array[1]);
 
 end program.
