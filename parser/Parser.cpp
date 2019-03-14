@@ -394,8 +394,8 @@ bool Parser::Name(std::string& identifier, SymbolRecord& nameSymbol) {
   nameSymbol = SymbolRecord(*scopeManager_.getSymbol(identifier));
 
   // <identifier>
-  // TODO(domfarolino): [CODEGEN] We need to set |nameSymbol|'s Value* to a
-  // reference of the variable we're interested in. This is either:
+  // [CODEGEN] We need to set |nameSymbol|'s Value* to a reference of the
+  // variable we're interested in. This is either:
   //   - An element of an regular array. See the below todo interested in this.
   //   - An element of a reference array. See |    |    |        |     |    |.
   //   - A regular symbol reference (original AllocaInst*) (see second below todo).
@@ -715,10 +715,9 @@ bool Parser::Destination(std::string& identifier,
     return false;
 
   // <identifier>
-  // TODO(domfarolino): [CODEGEN] We need to set |destinationSymbol|'s Value*
-  // to a reference of the variable we're assigning, so we can actually complete
-  // the assignment in AssignmentStatement. The destination can be one of four
-  // things:
+  // [CODEGEN] We need to set |destinationSymbol|'s Value* to a reference of the
+  // variable we're assigning, so we can actually complete the assignment in
+  // AssignmentStatement. The destination can be one of four things:
   //   - ArrayVariable[i] member
   //   - ReferenceArrayVariable[i] member
   //   - Variable (aka AllocaInst*)
@@ -1463,9 +1462,15 @@ bool Parser::Factor(SymbolRecord& symbolRecord) {
       return false;
     }
 
-    // TODO(domfarolino): [CODEGEN] If |minus|, we know we're dealing with an
-    // integer or float, and we should CodeGen::NegateX |symbolRecord|'s Value*
-    // appropriately.
+    // [CODEGEN] If |minus|, we know we're dealing with an integer or float, and
+    // we should CodeGen::NegateX |symbolRecord|'s Value* appropriately.
+    if (minus) {
+      // Assert: |symbolRecord.type| == SymbolType::Integer or
+      // SymbolType::Float;
+      symbolRecord.value = (symbolRecord.type == SymbolType::Integer) ?
+                           CodeGen::NegateInteger(symbolRecord.value):
+                           CodeGen::NegateFloat(symbolRecord.value);
+    }
 
     // ( <expression> )
     return true;

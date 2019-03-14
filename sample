@@ -222,4 +222,7 @@ begin
     putString("ended up being false");
   end if;
 
+  my_integer := -(10);
+  putInteger(my_integer);
+
 end program.
