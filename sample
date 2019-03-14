@@ -26,6 +26,16 @@ program dominic is
     end for;
     putString("LEAVING THE FUNCTION.");
   end procedure;
+
+  procedure factorial(integer n in, integer n_out in)
+  begin
+    if (n <= 0) then
+      putString("factorial of n is");
+      putInteger(n_out);
+    else
+      factorial(n - 1, n_out * n);
+    end if;
+  end procedure;
 begin
 
   my_integer := 1111;
@@ -137,4 +147,5 @@ begin
   func(integer_array, integer_array[9]);
   func(integer_array * 10, 10);
 
+  factorial(5, 1);
 end program.
