@@ -36,6 +36,26 @@ program dominic is
       factorial(n - 1, n_out * n);
     end if;
   end procedure;
+
+  procedure get_fifteen(float num out)
+  begin
+    num := 15.2444;
+  end procedure;
+
+  procedure zero_my_array(integer array[0: 9] out)
+    integer i;
+  begin
+    for (i := 0; i < 10)
+      array[i] := 0;
+      i := i + 1;
+    end for;
+  end procedure;
+
+  procedure square_my_array(integer array[0: 9] out)
+  begin
+    array := array * array;
+  end procedure;
+
 begin
 
   my_integer := 1111;
@@ -148,4 +168,30 @@ begin
   func(integer_array * 10, 10);
 
   factorial(5, 1);
+
+  putString("Now going to test parameters by reference: out parameters that is");
+
+  putString("float_array :4: is expected to be a fifteen float:");
+  get_fifteen(float_array[4]);
+  putFloat(float_array[4]);
+
+  putString("integer_array is expected to be zeroed out");
+  zero_my_array(integer_array);
+  for (i := 0; i < 10)
+    putInteger(integer_array[i]);
+    i := i + 1;
+  end for;
+
+  putString("Now let us assign all elements to ascending values, and test square_my_array");
+  for (i := 0; i < 10)
+    integer_array[i] := i + 1;
+    i := i + 1;
+  end for;
+
+  square_my_array(integer_array);
+  for (i := 0; i < 10)
+    putInteger(integer_array[i]);
+    i := i + 1;
+  end for;
+
 end program.

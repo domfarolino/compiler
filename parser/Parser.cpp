@@ -67,7 +67,7 @@ AbstractType SymbolTypeToAbstractType(const SymbolRecord& symbol_record) {
     return_type = (is_array) ? AbstractType::CharArray : AbstractType::Char;
   else if (symbol_record.type == SymbolType::String)
     return_type = (is_array) ? AbstractType::StringArray : AbstractType::String;
-  else
+  //else
     // Assert: Not reached.
 
   if (is_ref) {
@@ -434,18 +434,18 @@ bool Parser::Name(std::string& identifier, SymbolRecord& nameSymbol) {
     // must be an integer type. See
     // http://llvm.org/doxygen/Type_8h_source.html#l00196.
 
-    // TODO(domfarolino): [CODEGEN] The unmodified |nameSymbol| represents an
-    // array, which we'll want to index into with |nameSymbol|'s Value* as the
-    // variable, and |expressionSymbol|'s Value* as the index. The resulting
-    // Value* will be a reference to the original array element. We'll want to
-    // set |nameSymbol|'s Value* to the result of this index. There are two
-    // cases here though:
+    // [CODEGEN] The unmodified |nameSymbol| represents an array, which we'll
+    // want to index into with |nameSymbol|'s Value* as the variable, and
+    // |expressionSymbol|'s Value* as the index. The resulting Value* will be a
+    // reference to the original array element. We'll want to set |nameSymbol|'s
+    // Value* to the result of this index.
+    // There are two cases here though:
     //   - |nameSymbol| is an array, and NOT an Out/InOut reference.
     //     Handle this indexing with CodeGen::IndexArray(<originalValue>, ...) ✅
     //   - |nameSymbol| is an array, AND either an Out/InOut reference. Handle
     //     this indexing with CodeGen::IndexArray(Load(<originalValue>, ...)
     //     because the Value* is itself a reference reference, so we want to do
-    //     a single load first.                                                ❌
+    //     a single load first.                                                ✅
     // In both cases, we must ensure that |nameSymbol.paramType| = None to
     // prevent |nameSymbol| from ever being interpreted as a reference variable.
 
@@ -458,9 +458,8 @@ bool Parser::Name(std::string& identifier, SymbolRecord& nameSymbol) {
         nameSymbol.paramType == ParameterType::In) {
       nameSymbol.value = CodeGen::IndexArray(nameSymbol.value, expressionSymbol.value);
     } else {
-      // TODO(domfarolino): Implement the above.
-      //nameSymbol.value = CodeGen::IndexArray(CodeGen::Load(nameSymbol.value),
-      //                            expressionSymbol.value);
+      nameSymbol.value = CodeGen::IndexArray(CodeGen::Load(nameSymbol.value),
+                                  expressionSymbol.value);
     }
 
     // <identifier> [ <expression>
@@ -477,17 +476,22 @@ bool Parser::Name(std::string& identifier, SymbolRecord& nameSymbol) {
     return true;
   }
 
-  // TODO(domfarolino): [CODEGEN] As per the comment above the previous
-  // condition block, if we're here, we did not index into an array name, so we
-  // want to get |nameSymbol|'s Value* as a reference, as our final
-  // destination. There are two cases:
+  // [CODEGEN] As per the comment above the previous condition block, if we're
+  // here, we did not index into an array name, so we want to get |nameSymbol|'s
+  // Value* as a reference, as our final destination.
+  // There are two cases:
   //   - |nameSymbol| is a regular symbol, NOT Out/InOut.
   //     Handled by just retrieving |nameSymbol|'s Value* (original AllocaInst*)
   //     member. This even works with an array name.        ✅
   //   - |nameSymbol| is a reference symbol, EITHER Out/InOut.
-  //     Handled by performing a single load with CodeGen.  ❌
+  //     Handled by performing a single load with CodeGen.  ✅
   // In both cases, we must ensure that |nameSymbol.paramType| = None to
   // prevent |nameSymbol| from ever being interpreted as a reference variable.
+  if (nameSymbol.paramType == ParameterType::Out ||
+      nameSymbol.paramType == ParameterType::InOut) {
+    nameSymbol.value = CodeGen::Load(nameSymbol.value);
+    nameSymbol.paramType = ParameterType::None;
+  }
 
   // <identifier> (no <expression>!).
   return true;
@@ -757,19 +761,18 @@ bool Parser::Destination(std::string& identifier,
     // must be an integer type. See
     // http://llvm.org/doxygen/Type_8h_source.html#l00196.
 
-    // TODO(domfarolino): [CODEGEN] The unmodified |destinationSymbol|
-    // represents an array, which we'll want to index into with
-    // |destinationSymbol|'s Value* as the variable, and |expressionSymbol|'s
-    // Value* as the index. The resulting Value* will be a reference to the
-    // original array element. We'll want to set |destinationSymbol|'s Value* to
-    // the result of this index.
+    // [CODEGEN] The unmodified |destinationSymbol|represents an array, which
+    // we'll want to index into with |destinationSymbol|'s Value* as the
+    // variable, and |expressionSymbol|'s Value* as the index. The resulting
+    // Value* will be a reference to the original array element. We'll want to
+    // set |destinationSymbol|'s Value* to the result of this index.
     // There are two cases here though:
     //   - |destinationSymbol| is an array, and NOT an Out/InOut reference.
     //     Handle this indexing with CodeGen::IndexArray(<originalValue>, ...) ✅
     //   - |destinationSymbol| is an array, AND either an Out/InOut reference.
     //     Handle this indexing with
     //     CodeGen::IndexArray(Load(<originalValue>, ...) because the Value* is
-    //     itself a reference reference, so we want to do a single load first. ❌
+    //     itself a reference reference, so we want to do a single load first. ✅
     // In both cases, we must ensure that |destinationSymbol.paramType| = None
     // to prevent |destinationSymbol| from ever being interpreted as a reference
     // variable.
@@ -784,10 +787,9 @@ bool Parser::Destination(std::string& identifier,
       destinationSymbol.value = CodeGen::IndexArray(destinationSymbol.value,
                                                     expressionSymbol.value);
     } else {
-      // TODO(domfarolino): Implement the above.
-      //destinationSymbol.value = CodeGen::IndexArray(CodeGen::Load(
-      //                                              destinationSymbol.value),
-      //                                   expressionSymbol.value);
+      destinationSymbol.value = CodeGen::IndexArray(CodeGen::Load(
+                                                    destinationSymbol.value),
+                                         expressionSymbol.value);
     }
 
     // <identifier> [ <expression>
@@ -810,11 +812,16 @@ bool Parser::Destination(std::string& identifier,
   //   - |destinationSymbol| is a regular primitive, NOT Out/InOut.
   //     Handled by just retrieving |destinationSymbol|'s Value* (original
   //     AllocaInst*) member. This even works with an array destination.   ✅
-  //   - |destinationSymbol| is a reference primitive, either In/OutOut.
-  //     Handled by performing a load with CodeGen. (Not implemented yet). ❌
+  //   - |destinationSymbol| is a reference primitive, either Out/InOut.
+  //     Handled by performing a load with CodeGen. (Not implemented yet). ✅
   // In both cases, we must ensure that |destinationSymbol.paramType| = None
   // to prevent |destinationSymbol| from ever being interpreted as a reference
   // variable.
+  if (destinationSymbol.paramType == ParameterType::Out ||
+      destinationSymbol.paramType == ParameterType::InOut) {
+    destinationSymbol.value = CodeGen::Load(destinationSymbol.value);
+    destinationSymbol.paramType = ParameterType::None;
+  }
 
   // <identifier> (no <expression>!).
   return true;

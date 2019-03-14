@@ -100,3 +100,4 @@ The array is of size
 LEAVING THE FUNCTION.
 factorial of n is
 120
+Now going to test parameters by reference: out parameters that is
