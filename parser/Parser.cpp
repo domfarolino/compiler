@@ -454,6 +454,12 @@ bool Parser::Name(std::string& identifier, SymbolRecord& nameSymbol) {
     if (expressionSymbol.is_literal == false)
       expressionSymbol.value = CodeGen::Load(expressionSymbol.value);
 
+    Value* lower_bound =
+      CodeGen::ProduceInteger(std::stoi(nameSymbol.lowerBound));
+
+    expressionSymbol.value =
+      CodeGen::SubtractIntegers(expressionSymbol.value, lower_bound);
+
     if (nameSymbol.paramType == ParameterType::None ||
         nameSymbol.paramType == ParameterType::In) {
       nameSymbol.value = CodeGen::IndexArray(nameSymbol.value, expressionSymbol.value);
@@ -780,6 +786,12 @@ bool Parser::Destination(std::string& identifier,
     // should be tested).
     if (expressionSymbol.is_literal == false)
       expressionSymbol.value = CodeGen::Load(expressionSymbol.value);
+
+    Value* lower_bound =
+      CodeGen::ProduceInteger(std::stoi(destinationSymbol.lowerBound));
+
+    expressionSymbol.value =
+      CodeGen::SubtractIntegers(expressionSymbol.value, lower_bound);
 
     if (destinationSymbol.paramType == ParameterType::None ||
         destinationSymbol.paramType == ParameterType::In) {

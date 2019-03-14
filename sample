@@ -13,6 +13,7 @@ program dominic is
   integer integer_array[0: 9];
   float float_array[0: 9];
   string my_string_array[0: 9];
+  integer skewed_array[-41: -40];
 
   procedure func(integer array[0: 9] in, integer size in)
     integer i;
@@ -224,5 +225,12 @@ begin
 
   my_integer := -(10);
   putInteger(my_integer);
+
+  putString("Now testing skewed arrays");
+  skewed_array[-41] := 1;
+  skewed_array[-40] := 2;
+
+  putInteger(skewed_array[-41]);
+  putInteger(skewed_array[-40]);
 
 end program.
