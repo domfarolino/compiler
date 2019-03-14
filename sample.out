@@ -46,7 +46,7 @@ Loop iteration was executed
 9
 Now testing out array indexing
 111
--22
+-10000
 Now trying out some array acrobatics
 2.000000
 8.000000
@@ -58,3 +58,43 @@ Now trying out some array acrobatics
 128.000000
 162.000000
 200.000000
+Now for some function stuff
+Printing integer array contents for control value
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+INSIDE THE FUNCTION. Displaying everything in the array now
+The array is of size
+10
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+LEAVING THE FUNCTION.
+INSIDE THE FUNCTION. Displaying everything in the array now
+The array is of size
+10
+10
+20
+30
+40
+50
+60
+70
+80
+90
+100
+LEAVING THE FUNCTION.

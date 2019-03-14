@@ -71,7 +71,7 @@ public:
   std::vector<std::pair<std::string, SymbolRecord>> params;
   llvm::Value* value;
 
-  int array_length() {
+  int array_length() const {
     int return_length = std::stoi(upperBound) - std::stoi(lowerBound) + 1;
     // Assert: return_length >= 0.
     return return_length;

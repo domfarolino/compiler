@@ -13,6 +13,19 @@ program dominic is
   integer integer_array[0: 9];
   float float_array[0: 9];
   string my_string_array[0: 9];
+
+  procedure func(integer array[0: 9] in, integer size in)
+    integer i;
+  begin
+    putString("INSIDE THE FUNCTION. Displaying everything in the array now");
+    putString("The array is of size");
+    putInteger(size);
+    for (i := 0; i < size)
+      putInteger(array[i]);
+      i := i + 1;
+    end for;
+    putString("LEAVING THE FUNCTION.");
+  end procedure;
 begin
 
   my_integer := 1111;
@@ -93,6 +106,7 @@ begin
   putString("Now testing out array indexing");
   integer_array[i] := my_integer;
   integer_array[1] := -22;
+  integer_array[1] := -10_000;
   putInteger(integer_array[0]);
   putInteger(integer_array[1]);
 
@@ -111,5 +125,16 @@ begin
     putFloat(float_array[i]);
     i := i + 1;
   end for;
+
+  putString("Now for some function stuff");
+  putString("Printing integer array contents for control value");
+
+  for (i := 0; i < 10)
+    putInteger(integer_array[i]);
+    i := i + 1;
+  end for;
+
+  func(integer_array, integer_array[9]);
+  func(integer_array * 10, 10);
 
 end program.

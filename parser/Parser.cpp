@@ -50,23 +50,70 @@ bool IsBooleanEquivalent(const SymbolRecord& symbolRecord) {
          symbolRecord.type == SymbolType::Integer;
 }
 
-// TODO(domfarolino): Maybe we want to move this elsewhere?
+// TODO(domfarolino): Maybe we want to move these elsewhere?
 AbstractType SymbolTypeToAbstractType(const SymbolRecord& symbol_record) {
   bool is_array = symbol_record.isArray;
+  bool is_ref = symbol_record.paramType == ParameterType::Out ||
+                symbol_record.paramType == ParameterType::InOut;
 
+  AbstractType return_type;
   if (symbol_record.type == SymbolType::Integer)
-    return (is_array) ? AbstractType::IntegerArray : AbstractType::Integer;
+    return_type = (is_array) ? AbstractType::IntegerArray:AbstractType::Integer;
   else if (symbol_record.type == SymbolType::Float)
-    return (is_array) ? AbstractType::FloatArray : AbstractType::Float;
+    return_type = (is_array) ? AbstractType::FloatArray : AbstractType::Float;
   else if (symbol_record.type == SymbolType::Bool)
-    return (is_array) ? AbstractType::BoolArray : AbstractType::Bool;
+    return_type = (is_array) ? AbstractType::BoolArray : AbstractType::Bool;
   else if (symbol_record.type == SymbolType::Char)
-    return (is_array) ? AbstractType::CharArray : AbstractType::Char;
+    return_type = (is_array) ? AbstractType::CharArray : AbstractType::Char;
   else if (symbol_record.type == SymbolType::String)
-    return (is_array) ? AbstractType::StringArray : AbstractType::String;
+    return_type = (is_array) ? AbstractType::StringArray : AbstractType::String;
+  else
+    // Assert: Not reached.
 
-  // Assert: Not reached.
-  return AbstractType::Void;
+  if (is_ref) {
+    if (return_type == AbstractType::Integer)
+      return_type = AbstractType::IntegerRef;
+    else if (return_type == AbstractType::IntegerArray)
+      return_type = AbstractType::IntegerArrayRef;
+    else if (return_type == AbstractType::Float)
+      return_type = AbstractType::FloatRef;
+    else if (return_type == AbstractType::FloatArray)
+      return_type = AbstractType::FloatArrayRef;
+    else if (return_type == AbstractType::Bool)
+      return_type = AbstractType::BoolRef;
+    else if (return_type == AbstractType::BoolArray)
+      return_type = AbstractType::BoolArrayRef;
+    else if (return_type == AbstractType::Char)
+      return_type = AbstractType::CharRef;
+    else if (return_type == AbstractType::CharArray)
+      return_type = AbstractType::CharArrayRef;
+    else if (return_type == AbstractType::String)
+      return_type = AbstractType::StringRef;
+    else if (return_type == AbstractType::StringArray)
+      return_type = AbstractType::StringArrayRef;
+  }
+
+  return return_type;
+}
+
+std::vector<std::tuple<std::string, AbstractType, int>>
+SymbolRecordParamsToCodeGenParams(
+  const std::vector<std::pair<std::string, SymbolRecord>>& parameters) {
+
+  // What we'll be returning.
+  std::vector<std::tuple<std::string, AbstractType, int>> return_params;
+
+  for (auto record_pair: parameters) {
+    if (record_pair.second.isArray) record_pair.second.array_length();
+    return_params.push_back(
+      std::make_tuple(record_pair.first,
+                      SymbolTypeToAbstractType(record_pair.second),
+                      record_pair.second.isArray ?
+                        record_pair.second.array_length(): 0)
+                     );
+  }
+
+  return return_params;
 }
 
 Parser::Parser(const std::string& program_name, Lexer& inLexer,
@@ -1786,7 +1833,6 @@ bool Parser::ProcedureCall(std::string& identifier) {
   std::vector<Value*> arguments;
   for (int i = 0; i < argumentVec.size(); ++i) {
     if (procedureSymbol->params[i].second.paramType == ParameterType::In &&
-        argumentVec[i].isArray == false &&
         argumentVec[i].is_literal == false) {
       argumentVec[i].value = CodeGen::Load(argumentVec[i].value);
     }
@@ -1850,15 +1896,31 @@ bool Parser::ProcedureDeclaration(std::string& identifier,
   if (!ProcedureHeader(identifier, parameters))
     return false;
 
-  // Create the final procedure symbol record.
-  symbolRecord.params = parameters;
-
-  // TODO(domfarolino): [CODEGEN] CodeGen::CreateFunction() somewhere around
-  // here. CreateFunction() returns a FunctionDeclaration, which contains a
-  // bunch of Value*s that we need to store in the symbol table.
-
   // Enter procedure scope.
   scopeManager_.enterScope();
+
+  // [CODEGEN].
+  // The high-level parser code describes a procedure's parameters in a way that
+  // differs from CodeGen's description. CodeGen's description of parameters is
+  // generally more specific; SymbolRecordParamsToCodeGenParams acts as a
+  // "translator", capable of mapping a vector of <identifier, SymbolRecord> =>
+  // a vector of <identifier, AbstractType, array_length>. This is necessary
+  // because AbstractType's members are more descriptive than SymbolType's
+  // members, as an AbstractType captures array- and reference-ness.
+  FunctionDeclaration fn_dec = CodeGen::CreateFunction(identifier,
+                                 AbstractType::Void,
+                                 SymbolRecordParamsToCodeGenParams(parameters));
+  symbolRecord.value = fn_dec.function;
+  std::vector<Value*> parameter_values = fn_dec.arguments;
+
+  // We need to associate each of the CodeGen's argument Value*s with each
+  // of the symbol records for the parameters, but we'll only have a populated
+  // |parameter_values| when code generation is enabled.
+  for (int i = 0; i < parameters.size() && code_gen_; ++i)
+    parameters[i].second.value = parameter_values[i];
+
+  // Finalize procedure symbol record.
+  symbolRecord.params = parameters;
 
   // Add the procedure's symbol to its own symbol table.
   if (!scopeManager_.insertAllowShadow(identifier, symbolRecord))
@@ -1888,7 +1950,7 @@ bool Parser::ProcedureDeclaration(std::string& identifier,
   
   if (symbolInsight_) scopeManager_.printTopScope();
 
-  // TODO(domfarolino): [CODEGEN] CodeGen::EndFunction() around here.
+  CodeGen::EndFunction();
   scopeManager_.leaveScope();
   return parsedBody;
 }
