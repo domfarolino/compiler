@@ -898,10 +898,10 @@ bool Parser::ExpressionPrime(SymbolRecord& leftArithOp) {
 
     // Regardless of what we're dealing with, any non-literal scalars must be
     // loaded before being used.
-    if (leftArithOp.isArray == false && leftArithOp.is_literal == false) {}
-      //leftArithOp.value = CodeGen::Load(leftArithOp.value);
-    if (rightArithOp.isArray == false && rightArithOp.is_literal == false) {}
-      //rightArithOp.value = CodeGen::Load(rightArithOp.value);
+    if (leftArithOp.isArray == false && leftArithOp.is_literal == false)
+      leftArithOp.value = CodeGen::Load(leftArithOp.value);
+    if (rightArithOp.isArray == false && rightArithOp.is_literal == false)
+      rightArithOp.value = CodeGen::Load(rightArithOp.value);
 
     // If we're at all dealing with arrays, the CodeGen module's returned value
     // will be the non-LOADed address so that we may index into the array later.
@@ -911,23 +911,19 @@ bool Parser::ExpressionPrime(SymbolRecord& leftArithOp) {
     // operation.
     if (leftArithOp.isArray == false && rightArithOp.isArray == false) {
       // No arrays.
-      /*
       leftArithOp.value = (token_type == TokenType::TAmp) ?
-                          CodeGen::AndIntegers(leftArithOp.value,
-                                               rightArithOp.value):
-                          CodeGen::OrIntegers(leftArithOp.value,
-                                              rightArithop.value);
-      */
+                          CodeGen::And(leftArithOp.value,
+                                       rightArithOp.value):
+                          CodeGen::Or(leftArithOp.value,
+                                      rightArithOp.value);
       leftArithOp.is_literal = true;
     } else {
       // At least one array in the mix.
       // Non-literal scalars have already been loaded.
-      /*
       leftArithOp.value = CodeGen::BitwiseArrayComboImpl(
                                                  leftArithOp.value,
                                                  rightArithOp.value,
                                                  token_type == TokenType::TAmp);
-      */
 
       // Whenever we make a "new" array, the bounds must always be set so that
       // the length can be computed properly in the future.

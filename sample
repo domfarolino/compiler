@@ -194,4 +194,32 @@ begin
     i := i + 1;
   end for;
 
+  putString("Now trying bitwise operations");
+  integer_array := integer_array & 0;
+
+  for (i := 0; i < 10)
+    putInteger(integer_array[i]);
+    i := i + 1;
+  end for;
+
+  integer_array := integer_array + 4;
+  integer_array := 2 | integer_array;
+
+  for (i := 0; i < 10)
+    putInteger(integer_array[i]);
+    i := i + 1;
+  end for;
+
+  if (false | true) then
+    putString("ended up being true");
+  else
+    putString("ended up being false");
+  end if;
+
+  if (false & true) then
+    putString("ended up being true");
+  else
+    putString("ended up being false");
+  end if;
+
 end program.

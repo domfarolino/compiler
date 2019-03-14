@@ -101,3 +101,50 @@ LEAVING THE FUNCTION.
 factorial of n is
 120
 Now going to test parameters by reference: out parameters that is
+float_array :4: is expected to be a fifteen float:
+15.244400
+integer_array is expected to be zeroed out
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+Now let us assign all elements to ascending values, and test square_my_array
+1
+4
+9
+16
+25
+36
+49
+64
+81
+100
+Now trying bitwise operations
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+6
+6
+6
+6
+6
+6
+6
+6
+6
+6
+ended up being true
+ended up being false
