@@ -145,4 +145,21 @@ Tokenizing reserved word: ,
 Tokenizing identifier: commas
 Tokenizing reserved word: ,
 Tokenizing string: "woo"
+Tokenizing reserved word: (entering short-comment mode) //
+Tokenizing identifier: this
+Tokenizing reserved word: is
+Tokenizing identifier: a
+Tokenizing identifier: comment
+Tokenizing identifier: line
+Tokenizing TInteger: (leaving short-comment mode)
+14
+Tokenizing reserved word: */
+Tokenizing reserved word: /
+Tokenizing TInteger: 15
+Tokenizing reserved word: (entering short-comment mode) /*
+Tokenizing reserved word: (entering short-comment mode) //
+Tokenizing identifier: dom
+Tokenizing reserved word: */
+Tokenizing reserved word: (entering short-comment mode) //
+(leaving short-comment mode)
 Lexing complete...

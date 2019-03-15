@@ -62,7 +62,11 @@ enum class TokenType {
   TLeftParen,
   TRightParen,
   TEOF,
-  TInvalid
+  TInvalid,
+  // Comments
+  TShortComment,
+  TBeginComment,
+  TEndComment,
 };
 
 class Token {

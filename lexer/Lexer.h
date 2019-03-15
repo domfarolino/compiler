@@ -11,7 +11,11 @@ class Lexer {
 public:
   std::ifstream source;
   int lineNumber;
+  int line_number_snapshot_; // Used during short-comment lexing.
+  int nested_block_comment_level_ = 0;
   bool done = false;
+  bool short_comment_mode_ = false;
+  bool block_comment_mode_ = false;
   std::unordered_map<std::string, TokenType> reservedWords;
 
   Lexer(const std::string&, bool);

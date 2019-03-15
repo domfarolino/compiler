@@ -50,6 +50,9 @@ Lexer::Lexer(const std::string& program, bool inVerbose = false): source(program
     {"!=", TokenType::TNotEq},
     {"*", TokenType::TMultiply},
     {"/", TokenType::TDivide},
+    {"//", TokenType::TShortComment},
+    {"/*", TokenType::TBeginComment},
+    {"*/", TokenType::TEndComment},
     {"true", TokenType::TTrue},
     {"false", TokenType::TFalse}
   }) {
@@ -63,12 +66,11 @@ Lexer::~Lexer() {
   source.close();
 }
 
-/**
- * TODO: Allow us to deal with the lexing of both comments,
- * and nested comments (some extra work will need to be done here,
- * likely in and outside of the getNextToken function).
- * See https://github.com/domfarolino/compiler/issues/3
- */
+static bool IsCommentToken(Token token) {
+  return token.type == TokenType::TShortComment ||
+         token.type == TokenType::TBeginComment;
+}
+
 Token Lexer::nextToken() {
   // Handle whitespace
   processWhitespace();
@@ -97,9 +99,31 @@ Token Lexer::nextToken() {
   } else if (peek == EOF) {
     returnToken = Token('\0', TokenType::TEOF);
     done = true;
-    if (verbose_) std::cout << "Lexing complete..." << std::endl;
   } else {
     returnToken = processInvalid();
+  }
+
+  bool about_to_leave_block_comment_mode = false;
+
+  // Do we need to enter short-comment mode?
+  if (IsCommentToken(returnToken)) {
+    if (returnToken.type == TokenType::TShortComment) {
+      short_comment_mode_ = true;
+      line_number_snapshot_ = lineNumber;
+    } else {
+      block_comment_mode_ = true;
+      nested_block_comment_level_++;
+    }
+    if (verbose_) std::cout << "(entering short-comment mode) ";
+  }
+
+  // Do we need to leave the current comment mode?
+  if (short_comment_mode_) {
+    // When we move to the next line, we leave comment mode.
+    if (short_comment_mode_ && line_number_snapshot_ != lineNumber) {
+      if (verbose_) std::cout << "(leaving short-comment mode)" << std::endl;
+      short_comment_mode_ = false;
+    }
   }
 
   if (returnToken.type != TokenType::TInvalid &&
@@ -108,6 +132,23 @@ Token Lexer::nextToken() {
     std::cout << returnToken.lexeme << std::endl;
   }
 
+  if (block_comment_mode_ && returnToken.type == TokenType::TEndComment) {
+    nested_block_comment_level_--;
+    if (nested_block_comment_level_ == 0)
+      about_to_leave_block_comment_mode = true;
+  }
+
+  if (block_comment_mode_ || about_to_leave_block_comment_mode || short_comment_mode_) {
+    if(about_to_leave_block_comment_mode)
+      block_comment_mode_ = false;
+    return nextToken();
+  }
+
+  if (about_to_leave_block_comment_mode) {
+    block_comment_mode_ = false;
+  }
+
+  if (done && verbose_) std::cout << "Lexing complete..." << std::endl;
   return returnToken;
 }
 

@@ -66,3 +66,7 @@ a[1] := a[1] + 1;
 float dominicArray [10:20];
 :::::=
 this,is,testing,commas,"woo"
+// this is a comment line
+14 *// 15
+/*// dom */
+//

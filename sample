@@ -157,6 +157,17 @@ begin
     i := i + 1;
   end for;
 
+  //putString("Now for some function stuff");
+  //putString("Printing integer array contents for control value");
+
+  //for (i := 0; i < 10)
+    //putInteger(integer_array[i]);
+    //i := i + 1;
+  //end for;
+
+  //func(integer_array, 10);
+  //func(integer_array * 10, 10);
+
   putString("Now for some function stuff");
   putString("Printing integer array contents for control value");
 
